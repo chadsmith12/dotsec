@@ -1,0 +1,17 @@
+# Allowlisting gitignore for Go.
+
+# ignore everything
+*
+
+# not these files though...
+!/.gitignore
+
+!*.go
+!go.sum
+!go.mod
+
+!README.md
+!LICENSE
+
+# event if they are in subdirectories
+!*/
