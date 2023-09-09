@@ -1,16 +1,18 @@
 /*
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"os"
+	"path/filepath"
 
+	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-
+var configFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -30,7 +32,33 @@ func Execute() {
 }
 
 func init() {
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dotsec.yaml)")
+	cobra.OnInitialize(initConfig)
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "Config file for dotsec to read information from.")
+	rootCmd.PersistentFlags().String("server", "", "Passbolt Server to use (https://passbolt.example.com)")
+	rootCmd.PersistentFlags().String("privateKey", "", "Passbolt User Private Key")
+	rootCmd.PersistentFlags().String("password", "", "Passbolt User Password")
+
+	viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
+	viper.BindPFlag("privateKey", rootCmd.PersistentFlags().Lookup("privateKey"))
+	viper.BindPFlag("password", rootCmd.PersistentFlags().Lookup("password"))
 }
 
+func initConfig() {
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
+	} else {
+		// find the XDG config directory
+		configDir := xdg.ConfigHome
+		configDir = filepath.Join(configDir, "dotsec")
+		os.MkdirAll(configDir, 0700)
+		viper.SetConfigPermissions(os.FileMode(0600))
+		viper.AddConfigPath(configDir)
+		viper.SetConfigType("json")
+		viper.SetConfigName(".config")
+	}
+	
+	// read in the environment variables that match and use those
+	viper.SetEnvPrefix("dotsec")
+	viper.AutomaticEnv()
+}
 
