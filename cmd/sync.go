@@ -37,7 +37,7 @@ func syncRun(cmd *cobra.Command, args []string) {
 	server, keyFile, password := checkConfiguration()
 	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
-		fmt.Fprint(os.Stderr, "Failed to read key file: ", err)
+		fmt.Fprintln(os.Stderr, "Failed to read key file: ", err)
 		os.Exit(1)
 	}
 
