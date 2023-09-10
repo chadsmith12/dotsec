@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/chadsmith12/dotsec/input"
 	"github.com/spf13/cobra"
@@ -49,6 +50,7 @@ func configureRun(cmd *cobra.Command, args []string) {
 	
 	configErr := viper.SafeWriteConfig()
 	if configErr != nil {
-		log.Fatalf("Error Writing config: %v", configErr)
+		fmt.Fprintf(os.Stderr, "Error Writing config: %v", configErr)
+		os.Exit(1)
 	}
 }

@@ -4,6 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -60,5 +61,13 @@ func initConfig() {
 	// read in the environment variables that match and use those
 	viper.SetEnvPrefix("dotsec")
 	viper.AutomaticEnv()
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			fmt.Fprintf(os.Stderr, "Failed to read config with error: %v", err)
+			os.Exit(1)
+		}
+	}
 }
 
