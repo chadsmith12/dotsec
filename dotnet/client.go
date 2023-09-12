@@ -27,3 +27,29 @@ func InitSecrets(projectPath string) {
 
 	fmt.Fprintf(os.Stderr, "%v\n", stdOut.String())
 }
+
+func SetSecret(projectPath, key, value string) {
+	cmd := exec.Command("dotnet", "user-secrets", "set", key, value)
+	if projectPath != "" {
+		cmd.Args = append(cmd.Args, "--project")
+		cmd.Args = append(cmd.Args, projectPath)
+	}
+	
+	logAndRunCommand(cmd)
+}
+
+func logAndRunCommand(cmd *exec.Cmd) {
+	var stdOut bytes.Buffer
+	var errOut bytes.Buffer
+	cmd.Stdout = &stdOut
+	cmd.Stderr = &errOut
+
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error running %s %s", cmd.Args[0], cmd.Args[1])
+		os.Exit(1)
+	}
+
+	fmt.Fprintf(os.Stderr, "%v\n", stdOut.String())
+}

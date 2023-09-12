@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/chadsmith12/dotsec/dotnet"
 	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,10 +31,13 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(syncCmd)
 	syncCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory")
+	syncCmd.Flags().String("folder", "", "The folder we want to pull the secrets from")
+	syncCmd.MarkFlagRequired("folder")
 }
 
 func syncRun(cmd *cobra.Command, args []string) {
-	ctx, _ := context.WithTimeout(context.Background(), 30 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	defer cancel()
 	server, keyFile, password := checkConfiguration()
 	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
@@ -44,11 +48,28 @@ func syncRun(cmd *cobra.Command, args []string) {
 	client, err := passbolt.NewClient(ctx, server, string(keyData), password)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to create api client: ", err)
+		os.Exit(1)
 	}
 
 	err = client.Login()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to login to Passbolt: ", err)
+		os.Exit(1)
+	}
+
+	folderName, err := cmd.Flags().GetString("folder")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to find the folder flag. Did you use --folder? %s\n", err)
+		os.Exit(1)
+	}
+	secrets, err := client.GetSecretsByFolder(folderName);
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to retrieve folder: ", err)
+	}
+	
+	project, _ := cmd.Flags().GetString("project")
+	for _, secret := range secrets {
+		dotnet.SetSecret(project, secret.Key, secret.Value)
 	}
 }
 
