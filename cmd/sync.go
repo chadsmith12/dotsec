@@ -65,6 +65,7 @@ func syncRun(cmd *cobra.Command, args []string) {
 	secrets, err := client.GetSecretsByFolder(folderName);
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to retrieve folder: ", err)
+		os.Exit(1)
 	}
 	
 	project, _ := cmd.Flags().GetString("project")

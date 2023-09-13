@@ -7,38 +7,27 @@ import (
 	"os/exec"
 )
 
-func InitSecrets(projectPath string) {
+func InitSecrets(projectPath string) error {
 	cmd := exec.Command("dotnet", "user-secrets", "init")
 	if projectPath != "" {
 		cmd.Args = append(cmd.Args, "--project")
 		cmd.Args = append(cmd.Args, projectPath)
 	}
-	var stdOut bytes.Buffer
-	var errOut bytes.Buffer
-	cmd.Stdout = &stdOut
-	cmd.Stderr = &errOut
 
-	err := cmd.Run()
-	
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error user-secrets init: %v\n", errOut.String())
-		os.Exit(1)
-	}
-
-	fmt.Fprintf(os.Stderr, "%v\n", stdOut.String())
+	return logAndRunCommand(cmd)
 }
 
-func SetSecret(projectPath, key, value string) {
+func SetSecret(projectPath, key, value string) error {
 	cmd := exec.Command("dotnet", "user-secrets", "set", key, value)
 	if projectPath != "" {
 		cmd.Args = append(cmd.Args, "--project")
 		cmd.Args = append(cmd.Args, projectPath)
 	}
 	
-	logAndRunCommand(cmd)
+	return logAndRunCommand(cmd)
 }
 
-func logAndRunCommand(cmd *exec.Cmd) {
+func logAndRunCommand(cmd *exec.Cmd) error {
 	var stdOut bytes.Buffer
 	var errOut bytes.Buffer
 	cmd.Stdout = &stdOut
@@ -47,9 +36,10 @@ func logAndRunCommand(cmd *exec.Cmd) {
 	err := cmd.Run()
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error running %s %s", cmd.Args[0], cmd.Args[1])
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Error running %s %s - %v\n", cmd.Args[0], cmd.Args[1], errOut.String())
+		return fmt.Errorf("%s %s error: %w", cmd.Args[0], cmd.Args[1], err)
 	}
 
-	fmt.Fprintf(os.Stderr, "%v\n", stdOut.String())
+	fmt.Fprintf(os.Stderr, "%v", stdOut.String())
+	return nil
 }
