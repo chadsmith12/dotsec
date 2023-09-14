@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -15,27 +12,30 @@ import (
 	"github.com/spf13/viper"
 )
 
-// syncCmd represents the sync command
-var syncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+// pullCmd represents the sync command
+var pullCmd = &cobra.Command{
+	Use:   "pull",
+	Short: "Pulls down the secrets for a folder from passbolt",
+	Long: `Pulls down the secrets from the folder specified and saves them to your projects secrets file. 
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		If you do not specify the --project flag, then it will attempt to run dotnet user-secrets in your current working directory.
+		You can specify the project directory to run the dotnet user-secrets in.
+
+		Example: dotsec pull "SecretsFolder" --project ./projects/testProject/`,
 	Run: syncRun,
 }
 
 func init() {
-	rootCmd.AddCommand(syncCmd)
-	syncCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory")
-	syncCmd.Flags().String("folder", "", "The folder we want to pull the secrets from")
-	syncCmd.MarkFlagRequired("folder")
+	rootCmd.AddCommand(pullCmd)
+	pullCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory")
 }
 
 func syncRun(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		fmt.Println("Specify a folder to download secrets from")
+		os.Exit(1)
+	}
+	folderName := args[0]
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
 	server, keyFile, password := checkConfiguration()
@@ -57,11 +57,6 @@ func syncRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	folderName, err := cmd.Flags().GetString("folder")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to find the folder flag. Did you use --folder? %s\n", err)
-		os.Exit(1)
-	}
 	secrets, err := client.GetSecretsByFolder(folderName);
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to retrieve folder: ", err)
