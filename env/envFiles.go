@@ -3,15 +3,13 @@ package env
 import (
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/hashicorp/go-envparse"
 )
 
-func SetSecrets(project, env string, secretsData []passbolt.SecretData) error {
-	filePath := path.Join(project, env)
-	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0600)
+func SetSecrets(envFile string, secretsData []passbolt.SecretData) error {
+	file, err := os.OpenFile(envFile, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return fmt.Errorf("SetSecrets - failed to open file. %w", err)
 	}
@@ -22,11 +20,11 @@ func SetSecrets(project, env string, secretsData []passbolt.SecretData) error {
 	secrets, err := envparse.Parse(file)
 	
 	if err != nil {
-		return fmt.Errorf("SetSecrets - failed to parse env file %s. %w", filePath, err)
+		return fmt.Errorf("SetSecrets - failed to parse env file %s. %w", envFile, err)
 	}
 	file.Close()
+	
 	index := 0
-
 	for key  := range secrets {
 		if val, ok := secretsMap[key]; ok {
 			envLines[index] = fmt.Sprintf("%s=\"%s\"", key, val)
@@ -40,9 +38,9 @@ func SetSecrets(project, env string, secretsData []passbolt.SecretData) error {
 		index++
 	}
 
-	file, err = os.Create(filePath)
+	file, err = os.Create(envFile)
 	if err != nil {
-		return fmt.Errorf("SetSecrets - failed to create env file %s. %w", filePath, err)
+		return fmt.Errorf("SetSecrets - failed to create env file %s. %w", envFile, err)
 	}
 	defer file.Close()
 	

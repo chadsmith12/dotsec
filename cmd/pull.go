@@ -75,9 +75,9 @@ func pullRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	
-	project, _ := cmd.Flags().GetString("project")
 	envType, _ := cmd.Flags().GetString("type")
 	if envType == "dotnet" {
+		project, _ := cmd.Flags().GetString("project")
 		fmt.Fprintln(os.Stderr, "Using type of dotnet")
 		dotnet.InitSecrets(project)
 		for _, secret := range secrets {
@@ -85,7 +85,7 @@ func pullRun(cmd *cobra.Command, args []string) {
 		}
 	} else {
 		envFile, _ := cmd.Flags().GetString("file")
-		err := env.SetSecrets(project, envFile, secrets)
+		err := env.SetSecrets(envFile, secrets)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Failed to set secrets: ", err)
 			os.Exit(1)
