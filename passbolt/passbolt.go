@@ -88,18 +88,20 @@ func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]
 	}()
 	
 	for result := range ch {
-		*secrets = append(*secrets, result.secretData)
+		if result.err == nil {
+			*secrets = append(*secrets, result.secretData)
+		}
 	}
 }
 
 func (client *PassboltApi) downloadResource(resource api.Resource, ch chan<- resourceResult, wg *sync.WaitGroup) {
 	defer wg.Done()
-	_, _, username, _, password, _, err := helper.GetResource(client.context, client.apiClient, resource.ID)
+	_, name, _, _, password, _, err := helper.GetResource(client.context, client.apiClient, resource.ID)
 	if err != nil {
 		secretData := SecretData { Key: "", Value: "" }
 		ch <- resourceResult{secretData: secretData, err: err}
 		return
 	}
 	
-	ch <- resourceResult{ secretData: SecretData { Key: username, Value: password }, err: nil }
+	ch <- resourceResult{ secretData: SecretData { Key: name, Value: password }, err: nil }
 }

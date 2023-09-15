@@ -7,30 +7,42 @@ import (
 	"time"
 
 	"github.com/chadsmith12/dotsec/dotnet"
+	"github.com/chadsmith12/dotsec/env"
 	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
+var validEnvironments = []string {"dotnet", "env"}
+
 // pullCmd represents the sync command
 var pullCmd = &cobra.Command{
 	Use:   "pull",
 	Short: "Pulls down the secrets for a folder from passbolt",
-	Long: `Pulls down the secrets from the folder specified and saves them to your projects secrets file. 
+	Long: `Pulls down the secrets from the folder specified and saves them to your projects secrets file. There are two types: dotnet or env.
+		dotnet - Uses dotnet user-secrets to set the secrets in your dotnet projects secrets.json file.
+		env - Saves the secrets to the .env file. 
 
-		If you do not specify the --project flag, then it will attempt to run dotnet user-secrets in your current working directory.
-		You can specify the project directory to run the dotnet user-secrets in.
+		If you do not specify the --project flag, then it will attempt to use your current working directory.
+		You can specify the project directory for the secrets to try to be set.
+	
+		When using dotnet user-secrets your project will first be initialized to work with user-secrets.
+		When using env a file will be created and/or replaced with the secrets downloaded.
 
-		Example: dotsec pull "SecretsFolder" --project ./projects/testProject/`,
-	Run: syncRun,
+		Example: dotsec pull "SecretsFolder" --project ./projects/testProject/
+				 dotnet pull "SecretsFolder" --type env --file ".env" --project ./projects/testProject`,
+	Run: pullRun,
 }
 
 func init() {
 	rootCmd.AddCommand(pullCmd)
-	pullCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory")
+	pullCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory. Only valid with --type dotnet.")
+	pullCmd.Flags().StringP("file", "f", ".env", "The env file you want to save the secrets to. Default to .env in the current directory. Only valid with --type env.")
+	pullCmd.Flags().String("type", "dotnet", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
+
 }
 
-func syncRun(cmd *cobra.Command, args []string) {
+func pullRun(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		fmt.Println("Specify a folder to download secrets from")
 		os.Exit(1)
@@ -64,8 +76,20 @@ func syncRun(cmd *cobra.Command, args []string) {
 	}
 	
 	project, _ := cmd.Flags().GetString("project")
-	for _, secret := range secrets {
-		dotnet.SetSecret(project, secret.Key, secret.Value)
+	envType, _ := cmd.Flags().GetString("type")
+	if envType == "dotnet" {
+		fmt.Fprintln(os.Stderr, "Using type of dotnet")
+		dotnet.InitSecrets(project)
+		for _, secret := range secrets {
+			dotnet.SetSecret(project, secret.Key, secret.Value)
+		}
+	} else {
+		envFile, _ := cmd.Flags().GetString("file")
+		err := env.SetSecrets(project, envFile, secrets)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed to set secrets: ", err)
+			os.Exit(1)
+		}
 	}
 }
 
