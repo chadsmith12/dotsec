@@ -8,6 +8,7 @@ import (
 
 	"github.com/chadsmith12/dotsec/dotnet"
 	"github.com/chadsmith12/dotsec/env"
+	"github.com/chadsmith12/dotsec/input"
 	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -50,7 +51,7 @@ func pullRun(cmd *cobra.Command, args []string) {
 	folderName := args[0]
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
-	server, keyFile, password := checkConfiguration()
+	server, keyFile, password := getConfiguration()
 	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to read key file: ", err)
@@ -76,24 +77,32 @@ func pullRun(cmd *cobra.Command, args []string) {
 	}
 	
 	envType, _ := cmd.Flags().GetString("type")
+	setSecrectsForType(cmd, envType, secrets)	
+}
+
+func setSecrectsForType(cmd *cobra.Command, envType string, secrets []passbolt.SecretData ) {
 	if envType == "dotnet" {
 		project, _ := cmd.Flags().GetString("project")
-		fmt.Fprintln(os.Stderr, "Using type of dotnet")
-		dotnet.InitSecrets(project)
+		if err := dotnet.InitSecrets(project); err != nil {
+			os.Exit(1)
+		}
 		for _, secret := range secrets {
 			dotnet.SetSecret(project, secret.Key, secret.Value)
 		}
-	} else {
+	} else if (envType == "env") {
 		envFile, _ := cmd.Flags().GetString("file")
 		err := env.SetSecrets(envFile, secrets)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Failed to set secrets: ", err)
 			os.Exit(1)
 		}
+	} else {
+		fmt.Println("Invalid type detected. The current valid environments supported are dotnet, and env.")
+		os.Exit(1)
 	}
 }
 
-func checkConfiguration() (string, string, string) {
+func getConfiguration() (string, string, string) {
 	server:= viper.GetViper().GetString("server")
 	if server == "" {
 		fmt.Fprint(os.Stderr, "Server is not configured. Run the configure command, use the --server flag, or environment variable to set the server\n")
@@ -108,8 +117,7 @@ func checkConfiguration() (string, string, string) {
 
 	password := viper.GetViper().GetString("password")
 	if password == "" {
-		fmt.Fprint(os.Stderr, "password is not configured. Run the configure command, use the --password flag, or the environment variable to set the master password to use.\n")
-		os.Exit(1)
+		password, _ = input.PromptUser("Password: ", true)
 	}
 
 	return server, privateKey, password
