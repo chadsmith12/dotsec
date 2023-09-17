@@ -19,9 +19,9 @@ var configFile string
 var rootCmd = &cobra.Command{
 	Use:   "dotsec",
 	Short: "Quickly download secrets for your dotnet applications",
-	Long: `dotsec allows developers to quickly download their secrets and place them in their dotnet projects secrets.json file for local development.
+	Long: `dotsec allows developers to quickly download their secrets and place them in their dotnet projects secrets.json file or their .env file for local development.
 
-	The tool is designed to be used by teams where it can be difficult to keep and share development secrets across the team. Store them in the Passbolt password manager and quickly download and place them in your secrets.json file`,
+	The tool is designed to be used by teams where it can be difficult to keep and share development secrets across the team. Store them in the Passbolt password manager and quickly download and place them in your secrets.json file or a .env file. When using dotnet dotsec will use run the dotnet user-secrets command, and using a .env will parse and save the secrets to a .env file.`,
 }
 
 // This is called by main.main().
