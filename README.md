@@ -1,6 +1,5 @@
-# Dotsec CLI Tool Documentation
 
-## Overview
+# Overview
 
 Dotsec is a command-line interface (CLI) tool written in Go to simplify the process of downloading secrets from Passbolt during development for your project. It is designed to streamline the sharing of secrets within your team, supporting either `dotnet user-secrets` or a `.env` file as the storage mechanism.
 
