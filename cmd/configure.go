@@ -48,9 +48,27 @@ func configureRun(cmd *cobra.Command, args []string) {
 	viper.Set("privateKey", privateKey)
 	viper.Set("password", password)
 	
-	configErr := viper.SafeWriteConfig()
-	if configErr != nil {
-		fmt.Fprintf(os.Stderr, "Error Writing config: %v", configErr)
-		os.Exit(1)
+	//configErr := viper.SafeWriteConfig()
+	//if configErr != nil {
+	//	fmt.Fprintf(os.Stderr, "Error Writing config: %v", configErr)
+	//	os.Exit(1)
+	//}
+	saveConfigFile()
+}
+
+func saveConfigFile() {
+	err := viper.SafeWriteConfig()
+	if err != nil {
+		if _, ok := err.(viper.ConfigFileAlreadyExistsError); !ok {
+			fmt.Fprintf(os.Stderr, "error writing config: %v", err)
+			os.Exit(1)
+		}
+		fileName := viper.ConfigFileUsed()
+		filePath, err := input.PromptUser(fmt.Sprintf("Enter path to save config file (leave blank to overwrite %v): ", fileName), false)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error writing to path for config file. %v\n", err)
+			os.Exit(1)
+		}
+		viper.WriteConfigAs(filePath)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"golang.org/x/term"
 )
@@ -27,9 +26,13 @@ func PromptUser(prompt string, asPassword bool) (string, error) {
 }
 
 func readInput() (string, error) {
-	reader := bufio.NewReader(os.Stdin)
-	input, err := reader.ReadString('\n')
+	reader := bufio.NewScanner(os.Stdin)
+	reader.Scan()
+	err := reader.Err()
+	if err != nil {
+		return "", nil
+	}
 
-	return strings.Replace(input, "\n", "", 1), err
+	return reader.Text(), nil 
 }
 

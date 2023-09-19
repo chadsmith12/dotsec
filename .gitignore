@@ -9,9 +9,11 @@
 !*.go
 !go.sum
 !go.mod
-
+!.goreleaser.yaml
 !README.md
 !LICENSE
 
 # event if they are in subdirectories
 !*/
+
+dist/
