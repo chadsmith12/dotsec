@@ -5,7 +5,7 @@ Dotsec is a command-line interface (CLI) tool written in Go to simplify the proc
 
 ## Installation
 
-You can install Dotsec by downloading the latest release from the [GitHub repository](https://github.com/chadsmith12/dotsec) or by building it from source. Make sure to add the Dotsec binary to your system's PATH for easy access.
+You can install Dotsec by downloading the latest release from the [Releases](https://github.com/chadsmith12/dotsec/releases) or by building it from source. Make sure to add the Dotsec binary to your system's PATH for easy access.
 
 ```shell
 # Install Dotsec from source
