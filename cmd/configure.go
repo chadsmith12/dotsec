@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -38,7 +35,7 @@ func configureRun(cmd *cobra.Command, args []string) {
 		log.Fatalf("Error getting path to the private key: %v", err)
 	}
 
-	password, err := input.PromptUser("Master Password: ", true)
+	password, err := input.PromptUser("Master Password (leave blank to ask each time): ", true)
 	if err != nil {
 		log.Fatalf("Error getting users master password: %v", err)
 	}
@@ -48,27 +45,37 @@ func configureRun(cmd *cobra.Command, args []string) {
 	viper.Set("privateKey", privateKey)
 	viper.Set("password", password)
 	
-	//configErr := viper.SafeWriteConfig()
-	//if configErr != nil {
-	//	fmt.Fprintf(os.Stderr, "Error Writing config: %v", configErr)
-	//	os.Exit(1)
-	//}
 	saveConfigFile()
 }
 
 func saveConfigFile() {
+	// first try to just save the config in general.
+	// if there is an error we will then try to see if it's possible to save to a differnet path
 	err := viper.SafeWriteConfig()
 	if err != nil {
-		if _, ok := err.(viper.ConfigFileAlreadyExistsError); !ok {
-			fmt.Fprintf(os.Stderr, "error writing config: %v", err)
-			os.Exit(1)
-		}
-		fileName := viper.ConfigFileUsed()
-		filePath, err := input.PromptUser(fmt.Sprintf("Enter path to save config file (leave blank to overwrite %v): ", fileName), false)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error writing to path for config file. %v\n", err)
-			os.Exit(1)
-		}
-		viper.WriteConfigAs(filePath)
+		trySaveConfigAs(err)
+	}
+}
+
+func trySaveConfigAs(configError error) {
+	if _, ok := configError.(viper.ConfigFileAlreadyExistsError); !ok {
+		fmt.Fprintf(os.Stderr, "error writing config: %v\n", configError)
+		os.Exit(1)
+	}
+
+	currentConfigFile := viper.ConfigFileUsed()
+	filePath, promptError := input.PromptUser(fmt.Sprintf("Save config file as (%v): ", currentConfigFile), false)
+	if promptError != nil {
+		fmt.Fprintf(os.Stderr, "error getting new path for config file: %v\n", promptError)
+		os.Exit(1)
+	}
+
+	if filePath == "" {
+		filePath = currentConfigFile
+	}
+	err := viper.WriteConfigAs(filePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error saving config to new path: %v\n", err)
+		os.Exit(1)
 	}
 }

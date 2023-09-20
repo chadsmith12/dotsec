@@ -117,7 +117,8 @@ func getConfiguration() (string, string, string) {
 
 	password := viper.GetViper().GetString("password")
 	if password == "" {
-		password, _ = input.PromptUser("Password: ", true)
+		password, _ = input.PromptUser("Master Password: ", true)
+		fmt.Printf("\n")
 	}
 
 	return server, privateKey, password
