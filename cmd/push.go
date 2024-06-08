@@ -8,6 +8,7 @@ import (
 
 	"github.com/chadsmith12/dotsec/dotnet"
 	"github.com/chadsmith12/dotsec/passbolt"
+	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 )
 
@@ -79,6 +80,20 @@ func pushRun(cmd *cobra.Command, args []string) {
 	secretsData := passbolt.SecretDataFromSlice(values)
 
 	for _, value := range secretsData {
-		client.CreateSecretInFolder(folder.ID, value)
+		if id, ok := containsSecret(folder, value.Key); ok {
+			client.UpdateSecret(id, value)
+		} else {
+			client.CreateSecretInFolder(folder.ID, value)
+		}
 	}
+}
+
+func containsSecret(folder api.Folder, key string) (string, bool) {
+	for _, resource := range folder.ChildrenResources {
+		if resource.Name == key {
+			return resource.ID, true
+		}
+	}
+
+	return "", false
 }

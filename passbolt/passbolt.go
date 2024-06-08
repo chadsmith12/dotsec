@@ -106,6 +106,12 @@ func (client *PassboltApi) CreateSecretInFolder(folderId string, secret SecretDa
 	return err
 }
 
+func (client *PassboltApi) UpdateSecret(resourceId string, secret SecretData) error {
+	err := helper.UpdateResource(client.context, client.apiClient, resourceId, "", "", "", secret.Value, "")
+
+	return err
+}
+
 func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]SecretData) {
 	if len(resources) == 0 {
 		return
