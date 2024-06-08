@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/chadsmith12/dotsec/dotnet"
+	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +39,32 @@ func pushRun(cmd *cobra.Command, args []string) {
 
 	folderName := args[0]
 	project, _ := cmd.Flags().GetString("project")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	server, keyFile, password := getConfiguration()
+	keyData, err := os.ReadFile(keyFile)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to read key file: ", err)
+		os.Exit(1)
+	}
+
+	client, err := passbolt.NewClient(ctx, server, string(keyData), password)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to create api client: ", err)
+		os.Exit(1)
+	}
+
+	err = client.Login()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to login to Passbolt: ", err)
+		os.Exit(1)
+	}
+
+	folder, err := client.GetFolderWithResources(folderName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+	}
+
 	stdOut, err := dotnet.ListSecrets(project)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error - %v\n", err)
@@ -46,8 +75,9 @@ func pushRun(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Error - %v\n", err)
 		os.Exit(1)
 	}
-	for _, value := range values {
-		fmt.Printf(value)
+	secretsData := passbolt.SecretDataFromSlice(values)
+
+	for _, value := range secretsData {
+		client.CreateSecretInFolder(folder.ID, value)
 	}
-	fmt.Printf("Pushing to %s\n", folderName)
 }

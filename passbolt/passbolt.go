@@ -10,6 +10,10 @@ import (
 	"github.com/passbolt/go-passbolt/helper"
 )
 
+var (
+	InvalidFolderErr = fmt.Errorf("failed to find folder")
+)
+
 type PassboltApi struct {
 	server     string
 	privateKey string
@@ -66,24 +70,37 @@ func (client *PassboltApi) Login() error {
 }
 
 func (client *PassboltApi) GetSecretsByFolder(folderName string) ([]SecretData, error) {
-	folders, err := client.apiClient.GetFolders(client.context, &api.GetFoldersOptions{
-		FilterSearch:             folderName,
-		ContainChildrenResources: true,
-	})
-
+	folder, err := client.GetFolderWithResources(folderName)
 	secretData := make([]SecretData, 0)
 	if err != nil {
 		return secretData, err
 	}
 
-	if len(folders) == 0 {
-		return secretData, nil
-	}
-
-	folder := folders[0]
 	client.populateSecrets(folder.ChildrenResources, &secretData)
 
 	return secretData, nil
+}
+
+func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder, error) {
+	folders, err := client.apiClient.GetFolders(client.context, &api.GetFoldersOptions{
+		FilterSearch:             folderName,
+		ContainChildrenResources: true,
+	})
+
+	if err != nil {
+		return api.Folder{}, err
+	}
+	if len(folders) == 0 {
+		return api.Folder{}, InvalidFolderErr
+	}
+
+	return folders[0], nil
+}
+
+func (client *PassboltApi) CreateSecretInFolder(folderId string, secret SecretData) error {
+	_, err := helper.CreateResource(client.context, client.apiClient, folderId, secret.Key, "", "", secret.Key, "")
+
+	return err
 }
 
 func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]SecretData) {
