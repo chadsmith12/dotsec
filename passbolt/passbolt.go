@@ -90,11 +90,14 @@ func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder
 	if err != nil {
 		return api.Folder{}, err
 	}
-	if len(folders) == 0 {
-		return api.Folder{}, InvalidFolderErr
+
+	for _, folder := range folders {
+		if strings.EqualFold(folder.Name, folderName) {
+			return folder, nil
+		}
 	}
 
-	return folders[0], nil
+	return api.Folder{}, InvalidFolderErr
 }
 
 func (client *PassboltApi) CreateSecretInFolder(folderId string, secret SecretData) error {
