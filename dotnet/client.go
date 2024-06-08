@@ -29,7 +29,7 @@ func SetSecret(projectPath, key, value string) error {
 	return logAndRunCommand(cmd)
 }
 
-func ListSecrets(projectPath string) ([]string, error) {
+func ListSecrets(projectPath string) (bytes.Buffer, error) {
 	cmd := exec.Command("dotnet", "user-secrets", "list")
 	if projectPath != "" {
 		cmd.Args = append(cmd.Args, "--project")
@@ -39,10 +39,15 @@ func ListSecrets(projectPath string) ([]string, error) {
 	stdOut, errOut, err := runCmd(cmd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error running %s %s - %v\n", cmd.Args[0], cmd.Args[1], errOut.String())
-		return []string{}, fmt.Errorf("%s %s error: %w", cmd.Args[0], cmd.Args[1], err)
+		return stdOut, fmt.Errorf("%s %s error: %w", cmd.Args[0], cmd.Args[1], err)
 	}
 
-	scanner := bufio.NewScanner(&stdOut)
+	return stdOut, nil
+
+}
+
+func ParseSecrets(bufr bytes.Buffer) ([]string, error) {
+	scanner := bufio.NewScanner(&bufr)
 	if !scanner.Scan() {
 		if err := scanner.Err(); err != nil {
 			return []string{}, err

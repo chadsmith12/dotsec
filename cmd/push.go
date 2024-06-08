@@ -36,7 +36,12 @@ func pushRun(cmd *cobra.Command, args []string) {
 
 	folderName := args[0]
 	project, _ := cmd.Flags().GetString("project")
-	values, err := dotnet.ListSecrets(project)
+	stdOut, err := dotnet.ListSecrets(project)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error - %v\n", err)
+		os.Exit(1)
+	}
+	values, err := dotnet.ParseSecrets(stdOut)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error - %v\n", err)
 		os.Exit(1)

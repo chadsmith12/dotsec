@@ -3,6 +3,7 @@ package passbolt
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/passbolt/go-passbolt/api"
@@ -10,21 +11,35 @@ import (
 )
 
 type PassboltApi struct {
-	server string
+	server     string
 	privateKey string
-	password string
-	apiClient *api.Client
-	context context.Context
+	password   string
+	apiClient  *api.Client
+	context    context.Context
 }
 
 type SecretData struct {
-	Key string
+	Key   string
 	Value string
 }
 
 type resourceResult struct {
 	secretData SecretData
-	err error
+	err        error
+}
+
+func SecretDataFromSlice(values []string) []SecretData {
+	secrets := make([]SecretData, 0, len(values))
+
+	for _, value := range values {
+		key, secret, found := strings.Cut(value, "=")
+		if !found {
+			continue
+		}
+		secrets = append(secrets, SecretData{Key: strings.TrimSpace(key), Value: strings.TrimSpace(secret)})
+	}
+
+	return secrets
 }
 
 // Initializes a new Passbolt Api with the context specified, with the credentails passed in.
@@ -34,12 +49,12 @@ func NewClient(ctx context.Context, server, privateKey, password string) (*Passb
 	if err != nil {
 		return nil, fmt.Errorf("Creating Client: %w", err)
 	}
-	api := &PassboltApi {
-		server: server,
+	api := &PassboltApi{
+		server:     server,
 		privateKey: privateKey,
-		password: password,
-		apiClient: client,
-		context: ctx,
+		password:   password,
+		apiClient:  client,
+		context:    ctx,
 	}
 
 	return api, nil
@@ -52,7 +67,7 @@ func (client *PassboltApi) Login() error {
 
 func (client *PassboltApi) GetSecretsByFolder(folderName string) ([]SecretData, error) {
 	folders, err := client.apiClient.GetFolders(client.context, &api.GetFoldersOptions{
-		FilterSearch: folderName,
+		FilterSearch:             folderName,
 		ContainChildrenResources: true,
 	})
 
@@ -62,7 +77,7 @@ func (client *PassboltApi) GetSecretsByFolder(folderName string) ([]SecretData, 
 	}
 
 	if len(folders) == 0 {
-		return secretData, nil	
+		return secretData, nil
 	}
 
 	folder := folders[0]
@@ -86,7 +101,7 @@ func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]
 		wg.Wait()
 		close(ch)
 	}()
-	
+
 	for result := range ch {
 		if result.err == nil {
 			*secrets = append(*secrets, result.secretData)
@@ -98,10 +113,10 @@ func (client *PassboltApi) downloadResource(resource api.Resource, ch chan<- res
 	defer wg.Done()
 	_, name, _, _, password, _, err := helper.GetResource(client.context, client.apiClient, resource.ID)
 	if err != nil {
-		secretData := SecretData { Key: "", Value: "" }
+		secretData := SecretData{Key: "", Value: ""}
 		ch <- resourceResult{secretData: secretData, err: err}
 		return
 	}
-	
-	ch <- resourceResult{ secretData: SecretData { Key: name, Value: password }, err: nil }
+
+	ch <- resourceResult{secretData: SecretData{Key: name, Value: password}, err: nil}
 }
