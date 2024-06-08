@@ -86,7 +86,7 @@ func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder
 		FilterSearch:             folderName,
 		ContainChildrenResources: true,
 	})
-
+	
 	if err != nil {
 		return api.Folder{}, err
 	}
@@ -98,7 +98,7 @@ func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder
 }
 
 func (client *PassboltApi) CreateSecretInFolder(folderId string, secret SecretData) error {
-	_, err := helper.CreateResource(client.context, client.apiClient, folderId, secret.Key, "", "", secret.Key, "")
+	_, err := helper.CreateResource(client.context, client.apiClient, folderId, secret.Key, "", "", secret.Value, "")
 
 	return err
 }

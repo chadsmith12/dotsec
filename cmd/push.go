@@ -62,7 +62,8 @@ func pushRun(cmd *cobra.Command, args []string) {
 
 	folder, err := client.GetFolderWithResources(folderName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		fmt.Fprintf(os.Stderr, "Error - Using folder: %s - %v\n", folderName, err)
+		os.Exit(1)
 	}
 
 	stdOut, err := dotnet.ListSecrets(project)
