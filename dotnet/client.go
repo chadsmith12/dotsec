@@ -1,10 +1,12 @@
 package dotnet
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func InitSecrets(projectPath string) error {
@@ -23,11 +25,46 @@ func SetSecret(projectPath, key, value string) error {
 		cmd.Args = append(cmd.Args, "--project")
 		cmd.Args = append(cmd.Args, projectPath)
 	}
-	
+
 	return logAndRunCommand(cmd)
 }
 
-func logAndRunCommand(cmd *exec.Cmd) error {
+func ListSecrets(projectPath string) ([]string, error) {
+	cmd := exec.Command("dotnet", "user-secrets", "list")
+	if projectPath != "" {
+		cmd.Args = append(cmd.Args, "--project")
+		cmd.Args = append(cmd.Args, projectPath)
+	}
+
+	stdOut, errOut, err := runCmd(cmd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error running %s %s - %v\n", cmd.Args[0], cmd.Args[1], errOut.String())
+		return []string{}, fmt.Errorf("%s %s error: %w", cmd.Args[0], cmd.Args[1], err)
+	}
+
+	scanner := bufio.NewScanner(&stdOut)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return []string{}, err
+		}
+
+		return []string{}, nil
+	}
+
+	firstline := scanner.Text()
+	if strings.Contains(firstline, "No secrets configured") {
+		return []string{}, nil
+	}
+
+	secrets := []string{firstline}
+	for scanner.Scan() {
+		secrets = append(secrets, scanner.Text())
+	}
+
+	return secrets, nil
+}
+
+func runCmd(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
 	var stdOut bytes.Buffer
 	var errOut bytes.Buffer
 	cmd.Stdout = &stdOut
@@ -35,6 +72,11 @@ func logAndRunCommand(cmd *exec.Cmd) error {
 
 	err := cmd.Run()
 
+	return stdOut, errOut, err
+}
+
+func logAndRunCommand(cmd *exec.Cmd) error {
+	stdOut, errOut, err := runCmd(cmd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error running %s %s - %v\n", cmd.Args[0], cmd.Args[1], errOut.String())
 		return fmt.Errorf("%s %s error: %w", cmd.Args[0], cmd.Args[1], err)
