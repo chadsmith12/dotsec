@@ -1,6 +1,6 @@
 package dotnet
 
-import "github.com/chadsmith12/dotsec/passbolt"
+import "github.com/chadsmith12/dotsec/secrets"
 
 type DotNetSetter struct {
 	project string
@@ -11,7 +11,7 @@ func NewSetter(project string) DotNetSetter {
 }
 
 
-func (setter DotNetSetter) SetSecrets(secrets []passbolt.SecretData) error {
+func (setter DotNetSetter) SetSecrets(secrets []secrets.SecretData) error {
 	if err := InitSecrets(setter.project); err != nil {
 		return err
 	}

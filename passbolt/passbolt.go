@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/chadsmith12/dotsec/secrets"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 )
@@ -22,29 +23,11 @@ type PassboltApi struct {
 	context    context.Context
 }
 
-type SecretData struct {
-	Key   string
-	Value string
-}
-
 type resourceResult struct {
-	secretData SecretData
+	secretData secrets.SecretData
 	err        error
 }
 
-func SecretDataFromSlice(values []string) []SecretData {
-	secrets := make([]SecretData, 0, len(values))
-
-	for _, value := range values {
-		key, secret, found := strings.Cut(value, "=")
-		if !found {
-			continue
-		}
-		secrets = append(secrets, SecretData{Key: strings.TrimSpace(key), Value: strings.TrimSpace(secret)})
-	}
-
-	return secrets
-}
 
 // Initializes a new Passbolt Api with the context specified, with the credentails passed in.
 // Returns an error if an error happens creating a client.
@@ -74,9 +57,9 @@ func (client *PassboltApi) ValidLogin() bool {
 	return client.apiClient.CheckSession(client.context)
 }
 
-func (client *PassboltApi) GetSecretsByFolder(folderName string) ([]SecretData, error) {
+func (client *PassboltApi) GetSecretsByFolder(folderName string) ([]secrets.SecretData, error) {
 	folder, err := client.GetFolderWithResources(folderName)
-	secretData := make([]SecretData, 0)
+	secretData := make([]secrets.SecretData, 0)
 	if err != nil {
 		return secretData, err
 	}
@@ -105,19 +88,19 @@ func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder
 	return api.Folder{}, InvalidFolderErr
 }
 
-func (client *PassboltApi) CreateSecretInFolder(folderId string, secret SecretData) error {
+func (client *PassboltApi) CreateSecretInFolder(folderId string, secret secrets.SecretData) error {
 	_, err := helper.CreateResource(client.context, client.apiClient, folderId, secret.Key, "", "", secret.Value, "")
 
 	return err
 }
 
-func (client *PassboltApi) UpdateSecret(resourceId string, secret SecretData) error {
+func (client *PassboltApi) UpdateSecret(resourceId string, secret secrets.SecretData) error {
 	err := helper.UpdateResource(client.context, client.apiClient, resourceId, "", "", "", secret.Value, "")
 
 	return err
 }
 
-func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]SecretData) {
+func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]secrets.SecretData) {
 	if len(resources) == 0 {
 		return
 	}
@@ -144,10 +127,10 @@ func (client *PassboltApi) downloadResource(resource api.Resource, ch chan<- res
 	defer wg.Done()
 	_, name, _, _, password, _, err := helper.GetResource(client.context, client.apiClient, resource.ID)
 	if err != nil {
-		secretData := SecretData{Key: "", Value: ""}
+		secretData := secrets.SecretData{Key: "", Value: ""}
 		ch <- resourceResult{secretData: secretData, err: err}
 		return
 	}
 
-	ch <- resourceResult{secretData: SecretData{Key: name, Value: password}, err: nil}
+	ch <- resourceResult{secretData: secrets.SecretData{Key: name, Value: password}, err: nil}
 }

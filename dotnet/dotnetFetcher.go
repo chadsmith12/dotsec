@@ -1,7 +1,7 @@
 package dotnet
 
 import (
-	"github.com/chadsmith12/dotsec/passbolt"
+	"github.com/chadsmith12/dotsec/secrets"
 )
 
 type DotNetFetcher struct {
@@ -12,16 +12,16 @@ func NewFetcher(project string) DotNetFetcher {
 	return DotNetFetcher{ project: project }
 }
 
-func (fetcher DotNetFetcher) FetchSecrets() ([]passbolt.SecretData, error) {
+func (fetcher DotNetFetcher) FetchSecrets() ([]secrets.SecretData, error) {
 	stdOut, err := ListSecrets(fetcher.project)
 	if err != nil {
-		return []passbolt.SecretData{}, err
+		return []secrets.SecretData{}, err
 	}
 	values, err := ParseSecrets(stdOut)
 	if err != nil {
-		return []passbolt.SecretData{}, err
+		return []secrets.SecretData{}, err
 	}
 
-	secretsData := passbolt.SecretDataFromSlice(values)
+	secretsData := secrets.SecretDataFromSlice(values)
 	return secretsData, nil
 }

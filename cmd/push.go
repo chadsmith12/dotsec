@@ -6,7 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/chadsmith12/dotsec/cmdcontext"
 	"github.com/chadsmith12/dotsec/passbolt"
+	"github.com/chadsmith12/dotsec/secrets"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +42,7 @@ func pushRun(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmdCtx := NewCommandContext(cmd)
+	cmdCtx := cmdcontext.NewCommandContext(cmd)
 	client := cmdCtx.UserClient(ctx) 
 	folderName := args[0]
 	folder, err := client.GetFolderWithResources(folderName)
@@ -56,7 +58,7 @@ func pushRun(cmd *cobra.Command, args []string) {
 	pushSecrets(secretsData, client, folder)
 }
 
-func pushSecrets(secretsData []passbolt.SecretData, client *passbolt.PassboltApi, folder api.Folder) {
+func pushSecrets(secretsData []secrets.SecretData, client *passbolt.PassboltApi, folder api.Folder) {
 	for _, value := range secretsData {
 		if id, ok := containsSecret(folder, value.Key); ok {
 			client.UpdateSecret(id, value)

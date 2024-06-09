@@ -6,10 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/chadsmith12/dotsec/cmdcontext"
 	"github.com/spf13/cobra"
 )
-
-var validEnvironments = []string {"dotnet", "env"}
 
 // pullCmd represents the sync command
 var pullCmd = &cobra.Command{
@@ -46,7 +45,7 @@ func pullRun(cmd *cobra.Command, args []string) {
 	folderName := args[0]
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
-	cmdContext := NewCommandContext(cmd)
+	cmdContext := cmdcontext.NewCommandContext(cmd)
 
 	secrets, err := cmdContext.UserClient(ctx).GetSecretsByFolder(folderName);
 	if err != nil {
