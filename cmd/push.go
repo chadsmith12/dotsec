@@ -15,7 +15,7 @@ import (
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
-	Use:   "push",
+	Use:   "push foldername",
 	Short: "Pushes alll the secrets into your file to the secret manager",
 	Long: `Pushes the secrets from the folder specified and saves them to your secret manager folder. There are two types: dotnet or env.
 		dotnet - Uses dotnet user-secrets to set the secrets in your dotnet projects secrets.json file.
