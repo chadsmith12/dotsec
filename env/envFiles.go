@@ -8,6 +8,25 @@ import (
 	"github.com/hashicorp/go-envparse"
 )
 
+func GetSecrets(envFile string) ([]passbolt.SecretData, error) {
+	file, err := os.Open(envFile)
+	if err != nil {
+		return []passbolt.SecretData{}, err
+	}
+
+	secrets, err := envparse.Parse(file)
+	if err != nil {
+		return []passbolt.SecretData{}, err
+	}
+
+	secretData := make([]passbolt.SecretData, 0, len(secrets))
+	for key, value := range secrets {
+		secretData = append(secretData, passbolt.SecretData{Key: key, Value: value})
+	}
+
+	return secretData, nil
+}
+
 func SetSecrets(envFile string, secretsData []passbolt.SecretData) error {
 	file, err := os.OpenFile(envFile, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {

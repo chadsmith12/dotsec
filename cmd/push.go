@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chadsmith12/dotsec/dotnet"
+	"github.com/chadsmith12/dotsec/env"
 	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
@@ -22,6 +23,7 @@ var pushCmd = &cobra.Command{
 
 		If you do not specify the --project flag, then it will attempt to use your current working directory.
 		You can specify the project directory for the secrets to try to be read `,
+	Example: "dotsec push FolderName --project ./api",
 	Run: pushRun,
 }
 
@@ -37,11 +39,74 @@ func pushRun(cmd *cobra.Command, args []string) {
 		fmt.Println("Specify a folder to download secrets from")
 		os.Exit(1)
 	}
-
-	folderName := args[0]
-	project, _ := cmd.Flags().GetString("project")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	client := getClient(ctx)
+	folderName := args[0]
+	folder, err := client.GetFolderWithResources(folderName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error - Using folder: %s - %v\n", folderName, err)
+		os.Exit(1)
+	}
+
+	envType, _ := cmd.Flags().GetString("type")
+	secretsData := getSecretsByType(cmd, envType)
+	pushSecrets(secretsData, client, folder)
+}
+
+func getSecretsByType(cmd  *cobra.Command, envType string) []passbolt.SecretData {
+	if envType == "dotnet" {
+		project, _ := cmd.Flags().GetString("project")
+		stdOut, err := dotnet.ListSecrets(project)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error - %v\n", err)
+			os.Exit(1)
+		}
+		values, err := dotnet.ParseSecrets(stdOut)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error - %v\n", err)
+			os.Exit(1)
+		}
+
+		secretsData := passbolt.SecretDataFromSlice(values)
+		return secretsData 
+	} else if envType == "env" {
+		envFile, _ := cmd.Flags().GetString("file")
+		values, err := env.GetSecrets(envFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error - %v\n", err)
+			os.Exit(1)
+		}
+
+		return values
+	}
+	
+	fmt.Println("Invalid type detected. The current valid environments supported are dotnet, and env.")
+	os.Exit(1)
+	return []passbolt.SecretData{}
+}
+
+func pushSecrets(secretsData []passbolt.SecretData, client *passbolt.PassboltApi, folder api.Folder) {
+	for _, value := range secretsData {
+		if id, ok := containsSecret(folder, value.Key); ok {
+			client.UpdateSecret(id, value)
+		} else {
+			client.CreateSecretInFolder(folder.ID, value)
+		}
+	}
+}
+
+func containsSecret(folder api.Folder, key string) (string, bool) {
+	for _, resource := range folder.ChildrenResources {
+		if resource.Name == key {
+			return resource.ID, true
+		}
+	}
+
+	return "", false
+}
+
+func getClient(ctx context.Context) *passbolt.PassboltApi {
 	server, keyFile, password := getConfiguration()
 	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
@@ -61,39 +126,5 @@ func pushRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	folder, err := client.GetFolderWithResources(folderName)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error - Using folder: %s - %v\n", folderName, err)
-		os.Exit(1)
-	}
-
-	stdOut, err := dotnet.ListSecrets(project)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error - %v\n", err)
-		os.Exit(1)
-	}
-	values, err := dotnet.ParseSecrets(stdOut)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error - %v\n", err)
-		os.Exit(1)
-	}
-	secretsData := passbolt.SecretDataFromSlice(values)
-
-	for _, value := range secretsData {
-		if id, ok := containsSecret(folder, value.Key); ok {
-			client.UpdateSecret(id, value)
-		} else {
-			client.CreateSecretInFolder(folder.ID, value)
-		}
-	}
-}
-
-func containsSecret(folder api.Folder, key string) (string, bool) {
-	for _, resource := range folder.ChildrenResources {
-		if resource.Name == key {
-			return resource.ID, true
-		}
-	}
-
-	return "", false
+	return client
 }
