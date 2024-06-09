@@ -6,10 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/chadsmith12/dotsec/dotnet"
-	"github.com/chadsmith12/dotsec/env"
 	"github.com/chadsmith12/dotsec/passbolt"
-	"github.com/chadsmith12/dotsec/secretsfetcher"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +39,9 @@ func pushRun(cmd *cobra.Command, args []string) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	client := getClient(ctx)
+
+	cmdCtx := NewCommandContext(cmd)
+	client := cmdCtx.UserClient(ctx) 
 	folderName := args[0]
 	folder, err := client.GetFolderWithResources(folderName)
 	if err != nil {
@@ -50,23 +49,11 @@ func pushRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	envType, _ := cmd.Flags().GetString("type")
-	fetcher := getSecretsFetcher(cmd, envType)
-	secretsData, err := fetcher.FetchSecrets()
+	secretsData, err := cmdCtx.SecretsFetcher().FetchSecrets() 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error - Fetching Secrets: %v\n", err)
 	}
 	pushSecrets(secretsData, client, folder)
-}
-
-func getSecretsFetcher(cmd *cobra.Command, envType string) secretsfetcher.SecretsFetcher {
-	if envType == "dotnet" {
-		project, _ := cmd.Flags().GetString("project")
-		return dotnet.NewFetcher(project)
-	}
-
-	envFile, _ := cmd.Flags().GetString("file")
-	return env.NewFetcher(envFile)
 }
 
 func pushSecrets(secretsData []passbolt.SecretData, client *passbolt.PassboltApi, folder api.Folder) {
@@ -89,25 +76,3 @@ func containsSecret(folder api.Folder, key string) (string, bool) {
 	return "", false
 }
 
-func getClient(ctx context.Context) *passbolt.PassboltApi {
-	server, keyFile, password := getConfiguration()
-	keyData, err := os.ReadFile(keyFile)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to read key file: ", err)
-		os.Exit(1)
-	}
-
-	client, err := passbolt.NewClient(ctx, server, string(keyData), password)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to create api client: ", err)
-		os.Exit(1)
-	}
-
-	err = client.Login()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to login to Passbolt: ", err)
-		os.Exit(1)
-	}
-
-	return client
-}

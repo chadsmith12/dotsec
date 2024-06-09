@@ -69,6 +69,11 @@ func (client *PassboltApi) Login() error {
 	return client.apiClient.Login(client.context)
 }
 
+// Checks to see if the user has a valid session
+func (client *PassboltApi) ValidLogin() bool {
+	return client.apiClient.CheckSession(client.context)
+}
+
 func (client *PassboltApi) GetSecretsByFolder(folderName string) ([]SecretData, error) {
 	folder, err := client.GetFolderWithResources(folderName)
 	secretData := make([]SecretData, 0)

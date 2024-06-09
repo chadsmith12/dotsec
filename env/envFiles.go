@@ -27,7 +27,7 @@ func GetSecrets(envFile string) ([]passbolt.SecretData, error) {
 	return secretData, nil
 }
 
-func SetSecrets(envFile string, secretsData []passbolt.SecretData) error {
+func setSecrets(envFile string, secretsData []passbolt.SecretData) error {
 	file, err := os.OpenFile(envFile, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return fmt.Errorf("SetSecrets - failed to open file. %w", err)
