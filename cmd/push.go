@@ -9,6 +9,7 @@ import (
 	"github.com/chadsmith12/dotsec/dotnet"
 	"github.com/chadsmith12/dotsec/env"
 	"github.com/chadsmith12/dotsec/passbolt"
+	"github.com/chadsmith12/dotsec/secretsfetcher"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 )
@@ -50,40 +51,22 @@ func pushRun(cmd *cobra.Command, args []string) {
 	}
 
 	envType, _ := cmd.Flags().GetString("type")
-	secretsData := getSecretsByType(cmd, envType)
+	fetcher := getSecretsFetcher(cmd, envType)
+	secretsData, err := fetcher.FetchSecrets()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error - Fetching Secrets: %v\n", err)
+	}
 	pushSecrets(secretsData, client, folder)
 }
 
-func getSecretsByType(cmd  *cobra.Command, envType string) []passbolt.SecretData {
+func getSecretsFetcher(cmd *cobra.Command, envType string) secretsfetcher.SecretsFetcher {
 	if envType == "dotnet" {
 		project, _ := cmd.Flags().GetString("project")
-		stdOut, err := dotnet.ListSecrets(project)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error - %v\n", err)
-			os.Exit(1)
-		}
-		values, err := dotnet.ParseSecrets(stdOut)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error - %v\n", err)
-			os.Exit(1)
-		}
-
-		secretsData := passbolt.SecretDataFromSlice(values)
-		return secretsData 
-	} else if envType == "env" {
-		envFile, _ := cmd.Flags().GetString("file")
-		values, err := env.GetSecrets(envFile)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error - %v\n", err)
-			os.Exit(1)
-		}
-
-		return values
+		return dotnet.NewFetcher(project)
 	}
-	
-	fmt.Println("Invalid type detected. The current valid environments supported are dotnet, and env.")
-	os.Exit(1)
-	return []passbolt.SecretData{}
+
+	envFile, _ := cmd.Flags().GetString("file")
+	return env.NewFetcher(envFile)
 }
 
 func pushSecrets(secretsData []passbolt.SecretData, client *passbolt.PassboltApi, folder api.Folder) {
