@@ -4,11 +4,30 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chadsmith12/dotsec/passbolt"
+	"github.com/chadsmith12/dotsec/secrets"
 	"github.com/hashicorp/go-envparse"
 )
 
-func SetSecrets(envFile string, secretsData []passbolt.SecretData) error {
+func GetSecrets(envFile string) ([]secrets.SecretData, error) {
+	file, err := os.Open(envFile)
+	if err != nil {
+		return []secrets.SecretData{}, err
+	}
+
+	parsedSecrets, err := envparse.Parse(file)
+	if err != nil {
+		return []secrets.SecretData{}, err
+	}
+
+	secretData := make([]secrets.SecretData, 0, len(parsedSecrets))
+	for key, value := range parsedSecrets {
+		secretData = append(secretData, secrets.SecretData{Key: key, Value: value})
+	}
+
+	return secretData, nil
+}
+
+func setSecrets(envFile string, secretsData []secrets.SecretData) error {
 	file, err := os.OpenFile(envFile, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return fmt.Errorf("SetSecrets - failed to open file. %w", err)
@@ -51,7 +70,7 @@ func SetSecrets(envFile string, secretsData []passbolt.SecretData) error {
 	return nil
 }
 
-func createSecretsMap(secretsData []passbolt.SecretData) map[string]string {
+func createSecretsMap(secretsData []secrets.SecretData) map[string]string {
 	secretMap := make(map[string]string, len(secretsData))
 
 	for i := range secretsData {

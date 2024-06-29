@@ -6,15 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/chadsmith12/dotsec/dotnet"
-	"github.com/chadsmith12/dotsec/env"
-	"github.com/chadsmith12/dotsec/input"
-	"github.com/chadsmith12/dotsec/passbolt"
+	"github.com/chadsmith12/dotsec/cmdcontext"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-var validEnvironments = []string {"dotnet", "env"}
 
 // pullCmd represents the sync command
 var pullCmd = &cobra.Command{
@@ -51,75 +45,13 @@ func pullRun(cmd *cobra.Command, args []string) {
 	folderName := args[0]
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
-	server, keyFile, password := getConfiguration()
-	keyData, err := os.ReadFile(keyFile)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to read key file: ", err)
-		os.Exit(1)
-	}
+	cmdContext := cmdcontext.NewCommandContext(cmd)
 
-	client, err := passbolt.NewClient(ctx, server, string(keyData), password)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to create api client: ", err)
-		os.Exit(1)
-	}
-
-	err = client.Login()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to login to Passbolt: ", err)
-		os.Exit(1)
-	}
-
-	secrets, err := client.GetSecretsByFolder(folderName);
+	secrets, err := cmdContext.UserClient(ctx).GetSecretsByFolder(folderName);
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to retrieve folder: ", err)
 		os.Exit(1)
 	}
 	
-	envType, _ := cmd.Flags().GetString("type")
-	setSecrectsForType(cmd, envType, secrets)	
-}
-
-func setSecrectsForType(cmd *cobra.Command, envType string, secrets []passbolt.SecretData ) {
-	if envType == "dotnet" {
-		project, _ := cmd.Flags().GetString("project")
-		if err := dotnet.InitSecrets(project); err != nil {
-			os.Exit(1)
-		}
-		for _, secret := range secrets {
-			dotnet.SetSecret(project, secret.Key, secret.Value)
-		}
-	} else if (envType == "env") {
-		envFile, _ := cmd.Flags().GetString("file")
-		err := env.SetSecrets(envFile, secrets)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to set secrets: ", err)
-			os.Exit(1)
-		}
-	} else {
-		fmt.Println("Invalid type detected. The current valid environments supported are dotnet, and env.")
-		os.Exit(1)
-	}
-}
-
-func getConfiguration() (string, string, string) {
-	server:= viper.GetViper().GetString("server")
-	if server == "" {
-		fmt.Fprint(os.Stderr, "Server is not configured. Run the configure command, use the --server flag, or environment variable to set the server\n")
-		os.Exit(1)
-	}
-
-	privateKey := viper.GetViper().GetString("privateKey")
-	if privateKey == "" {
-		fmt.Fprint(os.Stderr, "privateKey is not configured. Run the configure command, use the --privateKey flag, or environment variable to set it to a valid private key file to load.\n")
-		os.Exit(1)
-	}
-
-	password := viper.GetViper().GetString("password")
-	if password == "" {
-		password, _ = input.PromptUser("Master Password: ", true)
-		fmt.Printf("\n")
-	}
-
-	return server, privateKey, password
+	cmdContext.SecretsSetter().SetSecrets(secrets)
 }
