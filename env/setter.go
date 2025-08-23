@@ -7,7 +7,7 @@ type EnvSetter struct {
 }
 
 func NewSetter(envFile string) EnvSetter {
-	return EnvSetter{ envFile: envFile }
+	return EnvSetter{envFile: envFile}
 }
 
 func (setter EnvSetter) SetSecrets(secrets []secrets.SecretData) error {

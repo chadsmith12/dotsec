@@ -29,7 +29,7 @@ func configureRun(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Error getting server: %v", err)
 	}
-	
+
 	privateKey, err := input.PromptUser("Path to Private Key: ", false)
 	if err != nil {
 		log.Fatalf("Error getting path to the private key: %v", err)
@@ -44,7 +44,7 @@ func configureRun(cmd *cobra.Command, args []string) {
 	viper.Set("server", server)
 	viper.Set("privateKey", privateKey)
 	viper.Set("password", password)
-	
+
 	saveConfigFile()
 }
 

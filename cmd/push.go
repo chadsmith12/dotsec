@@ -24,7 +24,7 @@ var pushCmd = &cobra.Command{
 		If you do not specify the --project flag, then it will attempt to use your current working directory.
 		You can specify the project directory for the secrets to try to be read `,
 	Example: "dotsec push FolderName --project ./api",
-	Run: pushRun,
+	Run:     pushRun,
 }
 
 func init() {
@@ -42,8 +42,17 @@ func pushRun(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmdCtx := cmdcontext.NewCommandContext(cmd)
-	client := cmdCtx.UserClient(ctx) 
+	cmdCtx, err := cmdcontext.NewCommandContext(cmd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create command context: %v\n", err)
+		os.Exit(1)
+	}
+
+	client, err := cmdCtx.UserClient(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get Passbolt client: %v\n", err)
+		os.Exit(1)
+	}
 	folderName := args[0]
 	folder, err := client.GetFolderWithResources(folderName)
 	if err != nil {
@@ -51,9 +60,16 @@ func pushRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	secretsData, err := cmdCtx.SecretsFetcher().FetchSecrets() 
+	fetcher, err := cmdCtx.SecretsFetcher()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get secrets fetcher: %v\n", err)
+		os.Exit(1)
+	}
+
+	secretsData, err := fetcher.FetchSecrets()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error - Fetching Secrets: %v\n", err)
+		os.Exit(1)
 	}
 	pushSecrets(secretsData, client, folder)
 }
@@ -77,4 +93,3 @@ func containsSecret(folder api.Folder, key string) (string, bool) {
 
 	return "", false
 }
-

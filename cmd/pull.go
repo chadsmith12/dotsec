@@ -43,15 +43,35 @@ func pullRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	folderName := args[0]
-	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	cmdContext := cmdcontext.NewCommandContext(cmd)
+	cmdContext, err := cmdcontext.NewCommandContext(cmd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create command context: %v\n", err)
+		os.Exit(1)
+	}
 
-	secrets, err := cmdContext.UserClient(ctx).GetSecretsByFolder(folderName);
+	client, err := cmdContext.UserClient(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get Passbolt client: %v\n", err)
+		os.Exit(1)
+	}
+
+	secrets, err := client.GetSecretsByFolder(folderName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to retrieve folder: ", err)
 		os.Exit(1)
 	}
-	
-	cmdContext.SecretsSetter().SetSecrets(secrets)
+
+	setter, err := cmdContext.SecretsSetter()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get secrets setter: %v\n", err)
+		os.Exit(1)
+	}
+
+	err = setter.SetSecrets(secrets)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to set secrets: %v\n", err)
+		os.Exit(1)
+	}
 }

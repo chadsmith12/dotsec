@@ -54,7 +54,7 @@ func initConfig() {
 		viper.SetConfigType("json")
 		viper.SetConfigName(".config")
 	}
-	
+
 	// read in the environment variables that match and use those
 	viper.SetEnvPrefix("dotsec")
 	viper.AutomaticEnv()
@@ -67,4 +67,3 @@ func initConfig() {
 		}
 	}
 }
-

@@ -9,7 +9,7 @@ type DotNetFetcher struct {
 }
 
 func NewFetcher(project string) DotNetFetcher {
-	return DotNetFetcher{ project: project }
+	return DotNetFetcher{project: project}
 }
 
 func (fetcher DotNetFetcher) FetchSecrets() ([]secrets.SecretData, error) {

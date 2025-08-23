@@ -7,9 +7,8 @@ type DotNetSetter struct {
 }
 
 func NewSetter(project string) DotNetSetter {
-	return DotNetSetter{ project: project }
+	return DotNetSetter{project: project}
 }
-
 
 func (setter DotNetSetter) SetSecrets(secrets []secrets.SecretData) error {
 	if err := InitSecrets(setter.project); err != nil {

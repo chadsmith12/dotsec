@@ -20,6 +20,7 @@ func SecretDataFromSlice(values []string) []SecretData {
 
 	return secretValues
 }
+
 // A SecretsFetcher is an interface you implement for different ways to fetch secrets from their underlying sources.
 // Right now we support env file and dotnet user-secrets
 type SecretsFetcher interface {
@@ -31,4 +32,3 @@ type SecretsFetcher interface {
 type SecretsSetter interface {
 	SetSecrets([]SecretData) error
 }
-
