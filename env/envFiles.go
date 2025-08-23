@@ -34,27 +34,30 @@ func setSecrets(envFile string, secretsData []secrets.SecretData) error {
 	}
 	defer file.Close()
 
-	envLines := make([]string, len(secretsData))
+	// envLines := make([]string, len(secretsData))
 	secretsMap := createSecretsMap(secretsData)
-	secrets, err := envparse.Parse(file)
+	currentSecrets, err := envparse.Parse(file)
 
 	if err != nil {
 		return fmt.Errorf("SetSecrets - failed to parse env file %s. %w", envFile, err)
 	}
 	file.Close()
 
-	index := 0
-	for key := range secrets {
+	// go through our current secrets and update them if we need to
+	// index := 0
+	for key := range currentSecrets {
 		if val, ok := secretsMap[key]; ok {
-			envLines[index] = fmt.Sprintf("%s=\"%s\"", key, val)
-			delete(secretsMap, key)
-			index++
+			//envLines[index] = fmt.Sprintf("%s=\"%s\"", key, val)
+			//delete(secretsMap, key)
+			//index++
+			currentSecrets[key] = val
 		}
 	}
 
 	for key, value := range secretsMap {
-		envLines[index] = fmt.Sprintf("%s=\"%s\"", key, value)
-		index++
+		currentSecrets[key] = value
+		// envLines[index] = fmt.Sprintf("%s=\"%s\"", key, value)
+		// index++
 	}
 
 	file, err = os.Create(envFile)
@@ -63,7 +66,8 @@ func setSecrets(envFile string, secretsData []secrets.SecretData) error {
 	}
 	defer file.Close()
 
-	for _, line := range envLines {
+	for key, value := range currentSecrets {
+		line := fmt.Sprintf("%s=\"%s\"", key, value)
 		fmt.Fprintln(file, line)
 	}
 
