@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/chadsmith12/dotsec/config"
 	"github.com/chadsmith12/dotsec/dotnet"
 	"github.com/chadsmith12/dotsec/env"
 	"github.com/chadsmith12/dotsec/input"
@@ -26,29 +27,23 @@ type CommandContext struct {
 	configuration *Configuration
 	client        *passbolt.PassboltApi
 	cmd           *cobra.Command
+	projectconfig *config.ProjectConfig
 }
 
 // Initializes a new CommandContext which gives you context into the how the current command is being ran.
 // This is meant to be used accross commands that need to access Passbolt and the secrets.
 // Returns an error if the configuration is invalid or required flags are missing.
-func NewCommandContext(cmd *cobra.Command) (*CommandContext, error) {
-	envType, err := cmd.Flags().GetString("type")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get type flag: %w", err)
-	}
-	if envType == "" {
-		return nil, errors.New("type flag is required")
-	}
-
+func NewCommandContext(cmd *cobra.Command, projectConfig *config.ProjectConfig) (*CommandContext, error) {
 	configuration, err := getConfiguration()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get configuration: %w", err)
 	}
 
 	return &CommandContext{
-		secretsType:   envType,
+		secretsType:   projectConfig.Type,
 		configuration: configuration,
 		cmd:           cmd,
+		projectconfig: projectConfig,
 	}, nil
 }
 
@@ -56,14 +51,11 @@ func NewCommandContext(cmd *cobra.Command) (*CommandContext, error) {
 func (cmdContext *CommandContext) SecretsFetcher() (secrets.SecretsFetcher, error) {
 	switch cmdContext.secretsType {
 	case "dotnet":
-		project, err := cmdContext.cmd.Flags().GetString("project")
-		if err != nil {
-			project = ""
-		}
+		project := cmdContext.projectconfig.Path
 		return dotnet.NewFetcher(project), nil
 	case "env":
-		envFile, err := cmdContext.cmd.Flags().GetString("file")
-		if err != nil {
+		envFile := cmdContext.projectconfig.Path
+		if envFile == "" {
 			envFile = ".env"
 		}
 		return env.NewFetcher(envFile), nil
@@ -76,14 +68,11 @@ func (cmdContext *CommandContext) SecretsFetcher() (secrets.SecretsFetcher, erro
 func (cmdContext *CommandContext) SecretsSetter() (secrets.SecretsSetter, error) {
 	switch cmdContext.secretsType {
 	case "dotnet":
-		project, err := cmdContext.cmd.Flags().GetString("project")
-		if err != nil {
-			project = ""
-		}
+		project := cmdContext.projectconfig.Path
 		return dotnet.NewSetter(project), nil
 	case "env":
-		envFile, err := cmdContext.cmd.Flags().GetString("file")
-		if err != nil {
+		envFile := cmdContext.projectconfig.Path
+		if envFile == "" {
 			envFile = ".env"
 		}
 		return env.NewSetter(envFile), nil

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chadsmith12/dotsec/cmdcontext"
+	"github.com/chadsmith12/dotsec/config"
 	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/chadsmith12/dotsec/secrets"
 	"github.com/passbolt/go-passbolt/api"
@@ -31,18 +32,23 @@ func init() {
 	rootCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory. Only valid with --type dotnet.")
 	pushCmd.Flags().StringP("file", "f", ".env", "The env file you want to save the secrets to. Default to .env in the current directory. Only valid with --type env.")
-	pushCmd.Flags().String("type", "dotnet", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
+	pushCmd.Flags().String("type", "", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
 }
 
 func pushRun(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		fmt.Println("Specify a folder to download secrets from")
+	folderName := ""
+	if len(args) > 0 {
+		folderName = args[0]
+	}
+	projectConfig, err := config.LoadProjectConfig(cmd, folderName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		os.Exit(1)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmdCtx, err := cmdcontext.NewCommandContext(cmd)
+	cmdCtx, err := cmdcontext.NewCommandContext(cmd, projectConfig)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create command context: %v\n", err)
 		os.Exit(1)
@@ -53,8 +59,7 @@ func pushRun(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Failed to get Passbolt client: %v\n", err)
 		os.Exit(1)
 	}
-	folderName := args[0]
-	folder, err := client.GetFolderWithResources(folderName)
+	folder, err := client.GetFolderWithResources(projectConfig.Folder)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error - Using folder: %s - %v\n", folderName, err)
 		os.Exit(1)
