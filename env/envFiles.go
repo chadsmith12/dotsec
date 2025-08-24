@@ -1,8 +1,10 @@
 package env
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chadsmith12/dotsec/secrets"
 	"github.com/hashicorp/go-envparse"
@@ -27,51 +29,137 @@ func GetSecrets(envFile string) ([]secrets.SecretData, error) {
 	return secretData, nil
 }
 
+func stripQuotes(value string) string {
+	if len(value) <= 2 {
+		return value
+	}
+	if value[0] == '"' && value[len(value)-1] == '"' {
+		return value[1 : len(value)-1]
+	}
+	if value[0] == '\'' && value[len(value)-1] == '\'' {
+		return value[1 : len(value)-1]
+	}
+
+	return value
+}
+
 func setSecrets(envFile string, secretsData []secrets.SecretData) error {
-	file, err := os.OpenFile(envFile, os.O_RDWR|os.O_CREATE, 0600)
+	currEnvFile, err := os.OpenFile(envFile, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return fmt.Errorf("SetSecrets - failed to open file. %w", err)
 	}
-	defer file.Close()
+	defer currEnvFile.Close()
 
-	// envLines := make([]string, len(secretsData))
-	secretsMap := createSecretsMap(secretsData)
-	currentSecrets, err := envparse.Parse(file)
-
+	tempEnvFile, err := os.CreateTemp("", ".env.temp")
 	if err != nil {
-		return fmt.Errorf("SetSecrets - failed to parse env file %s. %w", envFile, err)
+		return fmt.Errorf("SetSecrets - failed to create temporary file. %w", err)
 	}
-	file.Close()
+	defer func() {
+		tempEnvFile.Close()
+		if err != nil {
+			os.Remove(tempEnvFile.Name())
+		}
+	}()
 
-	// go through our current secrets and update them if we need to
-	// index := 0
-	for key := range currentSecrets {
-		if val, ok := secretsMap[key]; ok {
-			//envLines[index] = fmt.Sprintf("%s=\"%s\"", key, val)
-			//delete(secretsMap, key)
-			//index++
-			currentSecrets[key] = val
+	secretsMap := createSecretsMap(secretsData)
+	scanner := bufio.NewScanner(currEnvFile)
+	writer := bufio.NewWriter(tempEnvFile)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if err := processExistingLine(line, writer, secretsMap); err != nil {
+			return fmt.Errorf("SetSecrets - failed to process line: %w", err)
 		}
 	}
 
-	for key, value := range secretsMap {
-		currentSecrets[key] = value
-		// envLines[index] = fmt.Sprintf("%s=\"%s\"", key, value)
-		// index++
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("SetSecrets - failed to scan file: %w", err)
 	}
 
-	file, err = os.Create(envFile)
-	if err != nil {
-		return fmt.Errorf("SetSecrets - failed to create env file %s. %w", envFile, err)
+	if err := writeRemainingSecrets(writer, secretsMap); err != nil {
+		return fmt.Errorf("SetSecrets - failed to write remaining secrets: %w", err)
 	}
-	defer file.Close()
 
-	for key, value := range currentSecrets {
-		line := fmt.Sprintf("%s=\"%s\"", key, value)
-		fmt.Fprintln(file, line)
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("SetSecrets - failed to flush writer: %w", err)
+	}
+
+	tempEnvFile.Close()
+	if err := os.Rename(tempEnvFile.Name(), currEnvFile.Name()); err != nil {
+		return fmt.Errorf("SetSecrets - failed to rename temp file: %w", err)
 	}
 
 	return nil
+}
+
+func processExistingLine(line string, writer *bufio.Writer, secretsMap map[string]string) error {
+	key, currentValue, hasValue := parseEnvLine(line)
+
+	if key == "" {
+		return writeLineToFile(writer, line)
+	}
+
+	secretValue, found := secretsMap[key]
+	if !found {
+		return writeLineToFile(writer, line)
+	}
+
+	if shouldUpdateValue(currentValue, secretValue, hasValue) {
+		updatedLine := formatEnvLine(key, secretValue)
+		if err := writeLineToFile(writer, updatedLine); err != nil {
+			return err
+		}
+	} else {
+		if err := writeLineToFile(writer, line); err != nil {
+			return err
+		}
+	}
+
+	delete(secretsMap, key)
+	return nil
+}
+
+func writeRemainingSecrets(writer *bufio.Writer, secretsMap map[string]string) error {
+	for key, value := range secretsMap {
+		line := formatEnvLine(key, value)
+		if err := writeLineToFile(writer, line); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func parseEnvLine(line string) (key, value string, hasValue bool) {
+	line = strings.TrimSpace(line)
+
+	if line == "" || strings.HasPrefix(line, "#") {
+		return "", "", false
+	}
+
+	parts := strings.SplitN(line, "=", 2)
+	if len(parts) == 1 {
+		return strings.TrimSpace(parts[0]), "", false
+	}
+
+	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), true
+}
+
+func shouldUpdateValue(currentValue, secretValue string, hasValue bool) bool {
+	if !hasValue {
+		return true
+	}
+	return stripQuotes(currentValue) != secretValue
+}
+
+func formatEnvLine(key, value string) string {
+	return fmt.Sprintf("%s=\"%s\"", key, value)
+}
+
+func writeLineToFile(writer *bufio.Writer, line string) error {
+	if _, err := writer.WriteString(line); err != nil {
+		return err
+	}
+	return writer.WriteByte('\n')
 }
 
 func createSecretsMap(secretsData []secrets.SecretData) map[string]string {
