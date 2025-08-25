@@ -80,7 +80,6 @@ func loadFromFile() (*ProjectConfig, error) {
 func overrideFromFlags(cmd *cobra.Command, config *ProjectConfig) {
 	flags := cmd.Flags()
 	if secretType, _ := flags.GetString("type"); secretType != "" {
-		fmt.Println("setting secretType from the flag...")
 		config.Type = secretType
 	}
 
@@ -97,28 +96,4 @@ func overrideFromFlags(cmd *cobra.Command, config *ProjectConfig) {
 			config.Path = envFile
 		}
 	}
-}
-
-func loadFromFlags(cmd *cobra.Command) ProjectConfig {
-	flagConfig := ProjectConfig{}
-	flags := cmd.Flags()
-	if !flags.HasFlags() {
-		return ProjectConfig{}
-	}
-
-	secretType, err := flags.GetString("type")
-	if err != nil || secretType == "" {
-		flagConfig.Type = ""
-	}
-
-	projectPath, _ := flags.GetString("project")
-	envFile, _ := flags.GetString("file")
-	
-	if secretType == "env" {
-		flagConfig.Path = envFile
-	} else if secretType == "dotnet" {
-		flagConfig.Path = projectPath
-	}
-
-	return flagConfig
 }
