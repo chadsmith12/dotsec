@@ -41,6 +41,49 @@ archives:
         format: zip
 
 
+release:
+  # If set to true, will not auto-publish the release.
+  draft: false
+  
+  # Whether to remove existing draft releases with the same name before creating a new one.
+  replace_existing_draft: true
+  
+  # What to do with the release notes in case there the release already exists.
+  mode: replace
+  
+  # Header for the release notes.
+  header: |
+    ## Release Notes for {{ .Tag }}
+    
+    {{ if .IsPrerelease }}
+    **⚠️  This is a beta/pre-release version. Use with caution in production environments.**
+    {{ end }}
+
+  # Footer for the release notes.
+  footer: |
+    ---
+    
+    **Installation:**
+    {{ if .IsPrerelease }}
+    ```bash
+    # Install this beta version
+    curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --version {{ .Tag }}
+    
+    # Or install latest beta
+    curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --beta
+    ```
+    {{ else }}
+    ```bash
+    # Install latest stable version
+    curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash
+    
+    # Or install this specific version
+    curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --version {{ .Tag }}
+    ```
+    {{ end }}
+    
+    **Full Changelog**: https://github.com/chadsmith12/dotsec/compare/{{ .PreviousTag }}...{{ .Tag }}
+
 changelog:
   sort: asc
   filters:
