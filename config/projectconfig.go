@@ -12,15 +12,15 @@ const defaultName = ".dotsecrc"
 
 type ProjectConfig struct {
 	Folder string `json:"folder"`
-	Type string `json:"type"`
-	Path string `json:"path"`
+	Type   string `json:"type"`
+	Path   string `json:"path"`
 }
 
 func defaultProjectConfig() ProjectConfig {
 	return ProjectConfig{
 		Folder: "",
-		Type: "dotnet",
-		Path: "",	
+		Type:   "dotnet",
+		Path:   "",
 	}
 }
 
@@ -30,14 +30,39 @@ func WriteProjectConfig() error {
 		return fmt.Errorf("error creating .dotsecrc file: %w", err)
 	}
 	defer file.Close()
-	config := defaultProjectConfig()	
+	config := defaultProjectConfig()
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("error creating json for .dotsecrc file: %w", err)
 	}
 
 	if _, err := file.Write(data); err != nil {
-		return fmt.Errorf("error writing json to .dotsecrc file: %w", err)	
+		return fmt.Errorf("error writing json to .dotsecrc file: %w", err)
+	}
+
+	return nil
+}
+
+func WriteProjectConfigWithData(folder, secretType, path string) error {
+	file, err := os.Create(defaultName)
+	if err != nil {
+		return fmt.Errorf("error creating .dotsecrc file: %w", err)
+	}
+	defer file.Close()
+
+	config := ProjectConfig{
+		Folder: folder,
+		Type:   secretType,
+		Path:   path,
+	}
+
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error creating json for .dotsecrc file: %w", err)
+	}
+
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("error writing json to .dotsecrc file: %w", err)
 	}
 
 	return nil
@@ -51,7 +76,7 @@ func LoadProjectConfig(cmd *cobra.Command, folder string) (*ProjectConfig, error
 	}
 
 	overrideFromFlags(cmd, config)
-	
+
 	if folder != "" {
 		config.Folder = folder
 	}
@@ -68,7 +93,7 @@ func loadFromFile() (*ProjectConfig, error) {
 	if err != nil {
 		return &ProjectConfig{}, err
 	}
-	
+
 	projectConfig := &ProjectConfig{}
 	if err := json.Unmarshal(data, projectConfig); err != nil {
 		return &ProjectConfig{}, err
