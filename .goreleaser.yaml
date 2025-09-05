@@ -55,16 +55,12 @@ release:
   header: |
     ## Release Notes for {{ .Tag }}
     
-    {{ if or (contains .Tag "alpha") (contains .Tag "beta") (contains .Tag "rc") }}
-    **⚠️  This is a beta/pre-release version. Use with caution in production environments.**
-    {{ end }}
 
   # Footer for the release notes.
   footer: |
     ---
     
     **Installation:**
-    {{ if .IsPrerelease }}
     ```bash
     # Install this beta version
     curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --version {{ .Tag }}
@@ -72,7 +68,7 @@ release:
     # Or install latest beta
     curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --beta
     ```
-    {{ else }}
+
     ```bash
     # Install latest stable version
     curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash
@@ -80,7 +76,6 @@ release:
     # Or install this specific version
     curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --version {{ .Tag }}
     ```
-    {{ end }}
     
     **Full Changelog**: https://github.com/chadsmith12/dotsec/compare/{{ .PreviousTag }}...{{ .Tag }}
 
