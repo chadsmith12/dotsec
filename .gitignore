@@ -5,7 +5,7 @@
 
 # not these files though...
 !/.gitignore
-
+!install.sh
 !*.go
 !go.sum
 !go.mod
