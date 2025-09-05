@@ -28,7 +28,6 @@ type resourceResult struct {
 	err        error
 }
 
-
 // Initializes a new Passbolt Api with the context specified, with the credentails passed in.
 // Returns an error if an error happens creating a client.
 func NewClient(ctx context.Context, server, privateKey, password string) (*PassboltApi, error) {
@@ -74,7 +73,7 @@ func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder
 		FilterSearch:             folderName,
 		ContainChildrenResources: true,
 	})
-	
+
 	if err != nil {
 		return api.Folder{}, err
 	}

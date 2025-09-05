@@ -1,103 +1,255 @@
 
-# Overview
+# dotsec
 
-Dotsec is a command-line interface (CLI) tool written in Go to simplify the process of downloading secrets from a password/secretmanager during development for your project. It is designed to streamline the sharing of secrets within your team, supporting either `dotnet user-secrets` or a `.env` file as the storage mechanism.
+[![Release](https://img.shields.io/github/v/release/chadsmith12/dotsec)](https://github.com/chadsmith12/dotsec/releases)
+[![License](https://img.shields.io/github/license/chadsmith12/dotsec)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/chadsmith12/dotsec)](https://goreportcard.com/report/github.com/chadsmith12/dotsec)
 
-## Installation
+> **Secure development secrets management with Passbolt integration**
 
-You can install Dotsec by downloading the latest release from the [Releases](https://github.com/chadsmith12/dotsec/releases) or by building it from source. Make sure to add the `dotsec` binary to your system's PATH for easy access.
+**dotsec** is a command-line interface (CLI) tool written in Go that simplifies the process of synchronizing secrets between your password manager and development environment. It streamlines secret sharing within development teams by supporting both `dotnet user-secrets` and `.env` file formats.
 
-```shell
-# Install Dotsec from source
-git clone https://github.com/chadsmith12/dotsec.git
-cd dotsec
-go build
-mv dotsec /usr/local/bin/ # Move to a directory in your PATH
+## ✨ Features
+
+- 🔐 **Secure**: Direct integration with Passbolt for enterprise-grade secret management
+- 🔄 **Bi-directional Sync**: Pull secrets from Passbolt or push local secrets to Passbolt
+- 🛠️ **Multi-format Support**: Works with `dotnet user-secrets` and `.env` files
+- 🚀 **Easy Setup**: Simple configuration and installation process
+- 📦 **Cross-platform**: Available for Linux, macOS, and Windows
+- 🔧 **Development Focused**: Designed specifically for development team workflows
+
+## 📦 Installation
+
+### Quick Install (Recommended)
+
+Install the latest stable version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash
 ```
 
-## Supported Secret/Password Managers
+### Beta Releases
 
-Currently `dotsec` only supports Passbolt, though it could be expanded in the future to support other secret/password managers.
+Install the latest beta version to test new features:
 
-## Configuration
+```bash
+curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --beta
+```
 
-Before using `dotsec`, you need to configure it by providing the Passbolt server details, your private key file, and an optional password. You can configure `dotsec` using the following command:
+### Install Specific Version
 
-```shell
+```bash
+curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --version v1.2.3
+```
+
+### Custom Installation Directory
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | INSTALL_DIR=/opt/dotsec bash
+```
+
+### Manual Installation
+
+1. Download the latest release from [GitHub Releases](https://github.com/chadsmith12/dotsec/releases)
+2. Extract the archive
+3. Move the binary to a directory in your PATH:
+
+```bash
+# Linux/macOS
+sudo mv dotsec /usr/local/bin/
+
+# Or to user directory
+mkdir -p ~/.local/bin
+mv dotsec ~/.local/bin/
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/chadsmith12/dotsec.git
+cd dotsec
+go build -o dotsec
+sudo mv dotsec /usr/local/bin/
+```
+
+## 🚀 Quick Start
+
+### 1. Install dotsec
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash
+```
+
+### 2. Configure Passbolt Connection
+
+```bash
 dotsec configure
 ```
 
-This command will prompt you for the Passbolt server URL, private key file path, and password. If you leave the password blank, `dotsec` will prompt you for it each time it is required.
+This will prompt you for:
+- **Passbolt Server URL**: Your Passbolt instance URL
+- **Private Key File**: Path to your Passbolt private key file
+- **Password**: Optional password for the private key (leave blank to be prompted each time)
 
-## Basic Usage
+### 3. Initialize Project
 
-`dotsec` has two main commands/usages that you will use to manager your secrets for development. When interacting with Passbolt your secrets must be stored in a folder.
-
-* `pull` - This command will retrieve secrets from your secret/password manager and save them to the current secret type you're using (`dotsec user-secrets` or a `.env` file).
-* `push` - This command will push secrets from your secret type (`dotnet user-secrets` or `.env` file) to the secret/password manager. Use it to add/update secrets in your secret manager.
-
-### Basic `pull`
-
-The basic usage of `dotsec` involves using the `pull` command to retrieve secrets and save them to either a `dotnet user-secrets` file or a `.env` file. Here's a simple example:
-
-```shell
-dotsec pull "mysecrets"
+```bash
+dotsec init
 ```
 
-This command pulls secrets from the "mysecrets" folder from Passbolt and then runs `dotnet user-secrets set` for each secret found. Not supplying a flag for the type will default to `dotnet user-secrets`
+This creates a project configuration file to manage your secret settings.
 
-### Basic `push`
+### 4. Start Using
 
-The basic usage of `dotsec` and the `push` command allows you to quickly push up newly created or updated secrets to your secret manager. Just like the `pull` command it will default to `dotnet user-secrets`.
+```bash
+# Pull secrets from Passbolt to your development environment
+dotsec pull "my-project-secrets"
 
-```shell
-dotsec push "mysecrets"
+# Push local secrets to Passbolt
+dotsec push "my-project-secrets"
 ```
 
-## Advanced Usage
+## 🔧 Supported Secret Managers
 
-### Pull Command
+| Manager | Status | Description |
+|---------|--------|-------------|
+| **Passbolt** | ✅ Supported | Enterprise-grade open source password manager |
+| Others | 🔄 Planned | Additional managers may be supported in future releases |
 
-The `pull` command retrieves secrets from Passbolt and saves them to the env type. It takes the folder name in your secret manager as the first argument:
+## 📖 Usage
 
-- `folder name` (required): The name of the Passbolt folder containing the secrets you want to retrieve.
+dotsec provides two primary commands for managing secrets between your development environment and Passbolt:
 
-### Push Command
+| Command | Description | Direction |
+|---------|-------------|-----------|
+| `pull` | Retrieve secrets from Passbolt | Passbolt → Local Environment |
+| `push` | Upload secrets to Passbolt | Local Environment → Passbolt |
 
-The `push` command create or updates secrets inside of your secret manager from your current secrets type. It takes the folder name in your secret manager as the first argument:
+> **📝 Note**: When working with Passbolt, your secrets must be organized within folders.
 
-- `folder name` (required): The name of the Passbolt folder containing the secrets you want to retrieve.
+### Basic Commands
 
-Both the `pull` and `push` commands take the following flags:
+#### Pull Secrets from Passbolt
 
-- `--project (-p)` (optional): The path to the dotnet project where you want to sync the secrets. Defaults to the current directory. This flag is only valid with `--type dotnet`.
+```bash
+# Pull secrets to dotnet user-secrets (default)
+dotsec pull "my-project-secrets"
 
-- `--file (-f)` (optional): The `.env` file where you want to save the secrets. Defaults to `.env` in the current directory. This flag is only valid with `--type env`.
-
-- `--type` (optional): Defaults to `dotnet`. Specifies the type of secrets file you want to use. Use `dotnet` to use `dotnet user-secrets` or `env` to use a `.env` file.
-
-### Examples
-
-#### Pull secrets for a dotnet project:
-
-```shell
-dotsec pull "mysecrets" --project /path/to/dotnet/project --type dotnet
+# Pull secrets to .env file
+dotsec pull "my-project-secrets" --type env
 ```
 
-This command retrieves secrets from the "mysecrets" folder in Passbolt and runs `dotnet user-secrets set` inside the project directory specified. If no `secrets.json` file is found then it will run `dotnet user-secrets init` on the directory first.
+#### Push Secrets to Passbolt
 
-#### Pull secrets and save to a custom .env file:
+```bash
+# Push secrets from dotnet user-secrets (default)
+dotsec push "my-project-secrets"
 
-```shell
-dotsec pull "mysecrets" --file .env.development --type env
+# Push secrets from .env file
+dotsec push "my-project-secrets" --type env
 ```
 
-This command retrieves secrets from the "mysecrets" folder in Passbolt and saves them to the custom `.env` file named ".env.development" in the current directory.
+## 🔧 Advanced Usage
 
-#### Push secrets from a dotnet project:
+### Command Reference
 
-```shell
-dotsec push "mysecrets" --project /path/to/dotnet/project --type dotnet
+#### `dotsec pull <folder-name>`
+
+Retrieves secrets from a Passbolt folder and saves them to your local environment.
+
+**Arguments:**
+- `folder-name` (required): The name of the Passbolt folder containing your secrets
+
+**Flags:**
+- `--project, -p` (optional): Path to the dotnet project directory (default: current directory)
+  - Only valid with `--type dotnet`
+- `--file, -f` (optional): Target `.env` file path (default: `.env`)
+  - Only valid with `--type env`
+- `--type` (optional): Secret storage format (default: `dotnet`)
+  - Values: `dotnet` | `env`
+
+#### `dotsec push <folder-name>`
+
+Uploads secrets from your local environment to a Passbolt folder.
+
+**Arguments:**
+- `folder-name` (required): The name of the Passbolt folder to update
+
+**Flags:**
+- Same as `pull` command
+
+### 💡 Examples
+
+#### .NET Development
+
+```bash
+# Pull secrets for current .NET project
+dotsec pull "my-api-secrets" --type dotnet
+
+# Pull secrets for specific .NET project
+dotsec pull "my-api-secrets" --project /path/to/my-api --type dotnet
+
+# Push local user-secrets to Passbolt
+dotsec push "my-api-secrets" --project /path/to/my-api --type dotnet
 ```
 
-This command will update the secrets inside of the "mysecrets" folder from the secrets that the dotnet project, in the project directory specified.
+> **📝 Note**: For .NET projects, if no `secrets.json` file exists, dotsec will automatically run `dotnet user-secrets init`.
+
+#### Environment File Development
+
+```bash
+# Pull secrets to default .env file
+dotsec pull "my-app-secrets" --type env
+
+# Pull secrets to custom .env file
+dotsec pull "my-app-secrets" --file .env.development --type env
+
+# Push secrets from .env file to Passbolt
+dotsec push "my-app-secrets" --file .env.local --type env
+```
+
+### 🛠️ Additional Commands
+
+```bash
+# Configure Passbolt connection
+dotsec configure
+
+# Initialize project configuration
+dotsec init
+
+# Run tests (development)
+dotsec test
+
+# View help
+dotsec --help
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our contributing guidelines for details on how to submit pull requests, report issues, and contribute to the project.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- 📚 [Documentation](https://github.com/chadsmith12/dotsec)
+- 🐛 [Report Issues](https://github.com/chadsmith12/dotsec/issues)
+- 💬 [Discussions](https://github.com/chadsmith12/dotsec/discussions)
+
+## 📋 Requirements
+
+- **Go**: Version 1.19 or higher (for building from source)
+- **.NET SDK**: Required when using `--type dotnet` 
+- **Passbolt**: Access to a Passbolt server instance
+
+---
+
+<div align="center">
+
+**⭐ If you find dotsec useful, please consider giving it a star on GitHub! ⭐**
+
+Made with ❤️ by [Chad Smith](https://github.com/chadsmith12)
+
+</div>

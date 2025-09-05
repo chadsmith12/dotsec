@@ -18,7 +18,7 @@ func PromptUser(prompt string, asPassword bool) (string, error) {
 	}
 
 	inputBuf, err := term.ReadPassword(int(os.Stdin.Fd()))
-	if (err != nil) {
+	if err != nil {
 		return "", err
 	}
 
@@ -33,6 +33,5 @@ func readInput() (string, error) {
 		return "", nil
 	}
 
-	return reader.Text(), nil 
+	return reader.Text(), nil
 }
-

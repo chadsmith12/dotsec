@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chadsmith12/dotsec/cmdcontext"
+	"github.com/chadsmith12/dotsec/config"
 	"github.com/chadsmith12/dotsec/passbolt"
 	"github.com/chadsmith12/dotsec/secrets"
 	"github.com/passbolt/go-passbolt/api"
@@ -24,36 +25,56 @@ var pushCmd = &cobra.Command{
 		If you do not specify the --project flag, then it will attempt to use your current working directory.
 		You can specify the project directory for the secrets to try to be read `,
 	Example: "dotsec push FolderName --project ./api",
-	Run: pushRun,
+	Run:     pushRun,
 }
 
 func init() {
 	rootCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory. Only valid with --type dotnet.")
 	pushCmd.Flags().StringP("file", "f", ".env", "The env file you want to save the secrets to. Default to .env in the current directory. Only valid with --type env.")
-	pushCmd.Flags().String("type", "dotnet", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
+	pushCmd.Flags().String("type", "", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
 }
 
 func pushRun(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		fmt.Println("Specify a folder to download secrets from")
+	folderName := ""
+	if len(args) > 0 {
+		folderName = args[0]
+	}
+	projectConfig, err := config.LoadProjectConfig(cmd, folderName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		os.Exit(1)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmdCtx := cmdcontext.NewCommandContext(cmd)
-	client := cmdCtx.UserClient(ctx) 
-	folderName := args[0]
-	folder, err := client.GetFolderWithResources(folderName)
+	cmdCtx, err := cmdcontext.NewCommandContext(cmd, projectConfig)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create command context: %v\n", err)
+		os.Exit(1)
+	}
+
+	client, err := cmdCtx.UserClient(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get Passbolt client: %v\n", err)
+		os.Exit(1)
+	}
+	folder, err := client.GetFolderWithResources(projectConfig.Folder)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error - Using folder: %s - %v\n", folderName, err)
 		os.Exit(1)
 	}
 
-	secretsData, err := cmdCtx.SecretsFetcher().FetchSecrets() 
+	fetcher, err := cmdCtx.SecretsFetcher()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get secrets fetcher: %v\n", err)
+		os.Exit(1)
+	}
+
+	secretsData, err := fetcher.FetchSecrets()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error - Fetching Secrets: %v\n", err)
+		os.Exit(1)
 	}
 	pushSecrets(secretsData, client, folder)
 }
@@ -77,4 +98,3 @@ func containsSecret(folder api.Folder, key string) (string, bool) {
 
 	return "", false
 }
-

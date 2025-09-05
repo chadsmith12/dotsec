@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chadsmith12/dotsec/cmdcontext"
+	"github.com/chadsmith12/dotsec/config"
 	"github.com/spf13/cobra"
 )
 
@@ -33,25 +34,49 @@ func init() {
 	rootCmd.AddCommand(pullCmd)
 	pullCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory. Only valid with --type dotnet.")
 	pullCmd.Flags().StringP("file", "f", ".env", "The env file you want to save the secrets to. Default to .env in the current directory. Only valid with --type env.")
-	pullCmd.Flags().String("type", "dotnet", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
+	pullCmd.Flags().String("type", "", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
 
 }
 
 func pullRun(cmd *cobra.Command, args []string) {
-	if len(args) == 0 {
-		fmt.Println("Specify a folder to download secrets from")
+	folderName := ""
+	if len(args) > 0 {
+		folderName = args[0]
+	}
+	projectConfig, err := config.LoadProjectConfig(cmd, folderName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		os.Exit(1)
 	}
-	folderName := args[0]
-	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	cmdContext := cmdcontext.NewCommandContext(cmd)
+	cmdContext, err := cmdcontext.NewCommandContext(cmd, projectConfig)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create command context: %v\n", err)
+		os.Exit(1)
+	}
 
-	secrets, err := cmdContext.UserClient(ctx).GetSecretsByFolder(folderName);
+	client, err := cmdContext.UserClient(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get Passbolt client: %v\n", err)
+		os.Exit(1)
+	}
+
+	secrets, err := client.GetSecretsByFolder(projectConfig.Folder)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to retrieve folder: ", err)
 		os.Exit(1)
 	}
-	
-	cmdContext.SecretsSetter().SetSecrets(secrets)
+
+	setter, err := cmdContext.SecretsSetter()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get secrets setter: %v\n", err)
+		os.Exit(1)
+	}
+
+	err = setter.SetSecrets(secrets)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to set secrets: %v\n", err)
+		os.Exit(1)
+	}
 }

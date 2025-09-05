@@ -11,8 +11,8 @@ import (
 var testCmd = &cobra.Command{
 	Use:   "test",
 	Short: "Test the credentials that dotsec is about to use",
-	Long: `This is a quick command that will read and set the credentials that dotsec is about to use,`,
-	Run: runTestCmd,
+	Long:  `This is a quick command that will read and set the credentials that dotsec is about to use,`,
+	Run:   runTestCmd,
 }
 
 func init() {
