@@ -55,7 +55,7 @@ release:
   header: |
     ## Release Notes for {{ .Tag }}
     
-    {{ if .IsPrerelease }}
+    {{ if or (contains .Tag "alpha") (contains .Tag "beta") (contains .Tag "rc") }}
     **⚠️  This is a beta/pre-release version. Use with caution in production environments.**
     {{ end }}
 
