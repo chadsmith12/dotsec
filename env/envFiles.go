@@ -48,10 +48,11 @@ func setSecrets(envFile string, secretsData []secrets.SecretData) error {
 	if err != nil {
 		return fmt.Errorf("SetSecrets - failed to open file. %w", err)
 	}
-	defer currEnvFile.Close()
+	
 
 	tempEnvFile, err := os.CreateTemp("", ".env.temp")
 	if err != nil {
+		currEnvFile.Close()
 		return fmt.Errorf("SetSecrets - failed to create temporary file. %w", err)
 	}
 	defer func() {
@@ -73,18 +74,27 @@ func setSecrets(envFile string, secretsData []secrets.SecretData) error {
 	}
 
 	if err := scanner.Err(); err != nil {
+		currEnvFile.Close()
 		return fmt.Errorf("SetSecrets - failed to scan file: %w", err)
 	}
 
 	if err := writeRemainingSecrets(writer, secretsMap); err != nil {
+		currEnvFile.Close()
 		return fmt.Errorf("SetSecrets - failed to write remaining secrets: %w", err)
 	}
 
 	if err := writer.Flush(); err != nil {
+		currEnvFile.Close()
 		return fmt.Errorf("SetSecrets - failed to flush writer: %w", err)
 	}
 
+	currEnvFile.Close()
 	tempEnvFile.Close()
+
+	if err := os.Remove(envFile); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("SetSecrets - failed to remove old file: %w", err)
+	}
+
 	if err := os.Rename(tempEnvFile.Name(), currEnvFile.Name()); err != nil {
 		return fmt.Errorf("SetSecrets - failed to rename temp file: %w", err)
 	}
