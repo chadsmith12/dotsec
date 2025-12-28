@@ -48,7 +48,6 @@ func setSecrets(envFile string, secretsData []secrets.SecretData) error {
 	if err != nil {
 		return fmt.Errorf("SetSecrets - failed to open file. %w", err)
 	}
-	
 
 	tempEnvFile, err := os.CreateTemp("", ".env.temp")
 	if err != nil {

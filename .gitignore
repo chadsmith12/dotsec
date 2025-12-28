@@ -6,6 +6,7 @@
 # not these files though...
 !/.gitignore
 !install.sh
+!install.ps1
 !*.go
 !go.sum
 !go.mod

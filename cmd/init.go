@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/chadsmith12/dotsec/colors"
 	"github.com/chadsmith12/dotsec/config"
 	"github.com/chadsmith12/dotsec/input"
 	"github.com/spf13/cobra"
@@ -26,29 +27,29 @@ func init() {
 func initRun(cmd *cobra.Command, args []string) {
 	var folder string
 	for folder == "" {
-		val, err := input.PromptUser("Passbolt Folder Name: ", false)
+		val, err := input.PromptUser(colors.Yellow("Passbolt Folder Name: "), false)
 		if err != nil {
 			log.Fatalf("Error reading input: %v", err)
 		}
 		folder = strings.TrimSpace(val)
 		if folder == "" {
-			fmt.Println("Folder name is required")
+			fmt.Println(colors.Red("Folder name is required"))
 		}
 	}
 
 	var secretType string
 	for secretType == "" {
-		val, err := input.PromptUser("Secret type (dotnet/env) [env]: ", false)
+		val, err := input.PromptUser(colors.Yellow("Secret type (dotnet/env) [env]: "), false)
 		if err != nil {
 			log.Fatalf("Error reading input: %v", err)
 		}
-		secretType = strings.TrimSpace(val)
-		if secretType == "" {
+		val = strings.TrimSpace(val)
+		if val == "" {
 			secretType = "env"
 		} else if val == "dotnet" || val == "env" {
 			secretType = val
 		} else {
-			fmt.Println("Invalid type. Please enter 'dotnet' or 'env'")
+			fmt.Println(colors.Red("Invalid type. Please enter 'dotnet' or 'env'"))
 		}
 	}
 
@@ -56,7 +57,7 @@ func initRun(cmd *cobra.Command, args []string) {
 	if secretType == "dotnet" {
 		defaultPath = "."
 	}
-	val, err := input.PromptUser(fmt.Sprintf("Path: [%s]: ", defaultPath), false)
+	val, err := input.PromptUser(colors.Yellow(fmt.Sprintf("Path [%s]: ", defaultPath)), false)
 	if err != nil {
 		log.Fatalf("Error reading input: %v", err)
 	}
@@ -65,8 +66,8 @@ func initRun(cmd *cobra.Command, args []string) {
 		path = defaultPath
 	}
 
-	fmt.Printf("\nConfiguration:\n Folder: %s\n Type: %s\n Path: %s\n\n", folder, secretType, path)
-	confirm, _ := input.PromptUser("Save to .dotsecrc? [Y/n]: ", false)
+	fmt.Printf(colors.Cyan("\nConfiguration:\n Folder: %s\n Type: %s\n Path: %s\n\n"), folder, secretType, path)
+	confirm, _ := input.PromptUser(colors.Yellow("Save to .dotsecrc? [Y/n]: "), false)
 	if strings.ToLower(strings.TrimSpace(confirm)) == "n" {
 		fmt.Println("Cancelled")
 		return
@@ -76,5 +77,5 @@ func initRun(cmd *cobra.Command, args []string) {
 		log.Fatalf("Error saving config: %v", err)
 	}
 
-	fmt.Println("Configuration saved to .dotsecrc")
+	fmt.Println(colors.Green("Configuration saved to .dotsecrc"))
 }
