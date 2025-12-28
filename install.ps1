@@ -146,14 +146,19 @@ function Install-Dotsec {
 function Add-ToPath {
     Write-Info "Adding to PATH..."
 
-    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    # Get raw PATH from registry to preserve variables
+    $currentPath = try {
+        (Get-ItemProperty -Path "HKCU:\Environment" -Name "Path" -ErrorAction Stop).Path
+    } catch {
+        ""
+    }
 
     if ($currentPath -like "*$INSTALL_DIR*") {
         Write-Warn "PATH already contains $INSTALL_DIR"
     }
     else {
-        $newPath = "$currentPath;$INSTALL_DIR"
-        [Environment]::SetEnvironmentVariable("Path", $newPath, [EnvironmentVariableTarget]::User)
+        $newPath = if ($currentPath) { "$currentPath;$INSTALL_DIR" } else { $INSTALL_DIR }
+        Set-ItemProperty -Path "HKCU:\Environment" -Name "Path" -Value $newPath
         Write-Success "Added $INSTALL_DIR to user PATH"
     }
 
@@ -204,7 +209,7 @@ function Show-SuccessMessage {
     Write-Host "  $COLOR_CYAN  https://github.com/$GITHUB_REPO$COLOR_RESET"
     Write-Host ""
     Write-Warn "Restart your PowerShell terminal or run:"
-    Write-Host "  $COLOR_CYAN$`$env:Path += `";$INSTALL_DIR`"$COLOR_RESET"
+    Write-Host "  $COLOR_CYAN$$`$env:Path += `";$INSTALL_DIR`"$COLOR_RESET"
     Write-Host ""
 }
 
