@@ -180,10 +180,12 @@ function Verify-Installation {
         }
         else {
             Write-Warn "Could not determine installed version, but binary appears functional"
+            Write-Host "Exit code: $LASTEXITCODE, Output: $installedVersion" -ForegroundColor Yellow
         }
     }
     catch {
         Write-Warn "Could not verify version, but binary was installed successfully"
+        Write-Host "Error details: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
