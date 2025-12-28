@@ -13,6 +13,7 @@ $COLOR_GREEN = "`e[32m"
 $COLOR_YELLOW = "`e[33m"
 $COLOR_BLUE = "`e[34m"
 $COLOR_CYAN = "`e[36m"
+$COLOR_WHITE = "`e[37m"
 $COLOR_BOLD = "`e[1m"
 
 function Show-Header {
