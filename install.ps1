@@ -198,7 +198,7 @@ function Show-SuccessMessage {
     Write-Host "  $COLOR_CYAN  dotsec configure$COLOR_RESET  # Set up Passbolt authentication"
     Write-Host "  $COLOR_CYAN  dotsec --help$COLOR_RESET     # Show all available commands"
     Write-Host ""
-    Write-Host "$COLOR_WHITE$COLOR_BOLDDocumentation:$COLOR_RESET"
+    Write-Host "$COLOR_WHITE$COLOR_BOLD Documentation:$COLOR_RESET"
     Write-Host "  $COLOR_CYAN  https://github.com/$GITHUB_REPO$COLOR_RESET"
     Write-Host ""
     Write-Warn "Restart your PowerShell terminal or run:"
