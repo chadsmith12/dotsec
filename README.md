@@ -42,30 +42,10 @@ dotsec --version
 
 ### Linux / macOS
 
-Install the latest stable version:
+Install the latest version:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash
-```
-
-### Beta Releases
-
-Install the latest beta version to test new features:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --beta
-```
-
-### Install Specific Version
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | bash -s -- --version v1.2.3
-```
-
-### Custom Installation Directory
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/chadsmith12/dotsec/main/install.sh | INSTALL_DIR=/opt/dotsec bash
 ```
 
 ### Manual Installation
