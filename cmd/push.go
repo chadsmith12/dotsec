@@ -20,7 +20,7 @@ var pushCmd = &cobra.Command{
 	Short: "Pushes alll the secrets into your file to the secret manager",
 	Long: `Pushes the secrets from the folder specified and saves them to your secret manager folder. There are two types: dotnet or env.
 		dotnet - Uses dotnet user-secrets to set the secrets in your dotnet projects secrets.json file.
-		env - Saves the secrets to the .env file. 
+		env - Saves the secrets to the .env file.
 
 		If you do not specify the --project flag, then it will attempt to use your current working directory.
 		You can specify the project directory for the secrets to try to be read `,
@@ -82,9 +82,15 @@ func pushRun(cmd *cobra.Command, args []string) {
 func pushSecrets(secretsData []secrets.SecretData, client *passbolt.PassboltApi, folder api.Folder) {
 	for _, value := range secretsData {
 		if id, ok := containsSecret(folder, value.Key); ok {
-			client.UpdateSecret(id, value)
+			err := client.UpdateSecret(id, value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error Updating Secret %s - %v", value.Key, err)
+			}
 		} else {
-			client.CreateSecretInFolder(folder.ID, value)
+			err := client.CreateSecretInFolder(folder.ID, value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error Creating Secret %s -%v", value.Key, err)
+			}
 		}
 	}
 }
