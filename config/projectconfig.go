@@ -14,6 +14,7 @@ type ProjectConfig struct {
 	Folder string `json:"folder"`
 	Type   string `json:"type"`
 	Path   string `json:"path"`
+	Team   string `json:"team"`
 }
 
 func defaultProjectConfig() ProjectConfig {
@@ -43,7 +44,7 @@ func WriteProjectConfig() error {
 	return nil
 }
 
-func WriteProjectConfigWithData(folder, secretType, path string) error {
+func WriteProjectConfigWithData(folder, secretType, path, team string) error {
 	file, err := os.Create(defaultName)
 	if err != nil {
 		return fmt.Errorf("error creating .dotsecrc file: %w", err)
@@ -54,6 +55,7 @@ func WriteProjectConfigWithData(folder, secretType, path string) error {
 		Folder: folder,
 		Type:   secretType,
 		Path:   path,
+		Team:   team,
 	}
 
 	data, err := json.MarshalIndent(config, "", "  ")

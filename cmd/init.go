@@ -66,14 +66,19 @@ func initRun(cmd *cobra.Command, args []string) {
 		path = defaultPath
 	}
 
-	fmt.Printf(colors.Cyan("\nConfiguration:\n Folder: %s\n Type: %s\n Path: %s\n\n"), folder, secretType, path)
+	teamName, err := input.PromptUser(colors.Yellow("Team Name: "), false)
+	if err != nil {
+		teamName = ""
+	}
+
+	fmt.Printf(colors.Cyan("\nConfiguration:\n Folder: %s\n Type: %s\n Path: %s\n Team: %s\n\n"), folder, secretType, path, teamName)
 	confirm, _ := input.PromptUser(colors.Yellow("Save to .dotsecrc? [Y/n]: "), false)
 	if strings.ToLower(strings.TrimSpace(confirm)) == "n" {
 		fmt.Println("Cancelled")
 		return
 	}
 
-	if err := config.WriteProjectConfigWithData(folder, secretType, path); err != nil {
+	if err := config.WriteProjectConfigWithData(folder, secretType, path, teamName); err != nil {
 		log.Fatalf("Error saving config: %v", err)
 	}
 
