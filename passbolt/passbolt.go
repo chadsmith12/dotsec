@@ -23,6 +23,12 @@ type PassboltApi struct {
 	context    context.Context
 }
 
+type AddUserGroupOptions struct {
+	Group   api.Group
+	User    api.User
+	Manager bool
+}
+
 type resourceResult struct {
 	secretData secrets.SecretData
 	err        error
@@ -99,27 +105,60 @@ func (client *PassboltApi) UpdateSecret(resourceId string, secret secrets.Secret
 	return err
 }
 
-func (client *PassboltApi) GetGroup(groupName string) ([]helper.GroupMembership, error) {
+func (client *PassboltApi) GetGroupMembers(groupName string) ([]helper.GroupMembership, error) {
+	group, err := client.GetGroup(groupName)
+	if group.ID == "" {
+		return []helper.GroupMembership{}, fmt.Errorf("failed to find group '%s'", groupName)
+	}
+
+	_, members, err := helper.GetGroup(client.context, client.apiClient, group.ID)
+
+	return members, err
+}
+
+func (client *PassboltApi) GetGroup(groupName string) (api.Group, error) {
 	groups, err := client.apiClient.GetGroups(client.context, &api.GetGroupsOptions{
 		ContainUsers: true,
 	})
 	if err != nil {
-		return []helper.GroupMembership{}, err
+		return api.Group{}, err
 	}
 
-	groupId := ""
+	var foundGroup api.Group
 	for _, group := range groups {
 		if group.Name == groupName {
-			groupId = group.ID
+			foundGroup = group
 		}
 	}
-	if groupId == "" {
-		return []helper.GroupMembership{}, fmt.Errorf("failed to find group '%s'", groupName)
+	if foundGroup.ID == "" {
+		return foundGroup, fmt.Errorf("failed to find group '%s'", groupName)
+	}
+	return foundGroup, nil
+}
+
+func (client *PassboltApi) GetUser(userEmail string) (api.User, error) {
+	users, err := client.apiClient.GetUsers(client.context, &api.GetUsersOptions{})
+	if err != nil {
+		return api.User{}, err
 	}
 
-	_, members, err := helper.GetGroup(client.context, client.apiClient, groupId)
+	for _, user := range users {
+		if user.Username == userEmail {
+			return user, nil
+		}
+	}
 
-	return members, err
+	return api.User{}, fmt.Errorf("failed to find user %s", userEmail)
+}
+
+func (client *PassboltApi) AddUserToGroup(options AddUserGroupOptions) error {
+	return helper.UpdateGroup(client.context, client.apiClient, options.Group.ID, options.Group.Name, []helper.GroupMembershipOperation{
+		{
+			UserID:         options.User.ID,
+			IsGroupManager: options.Manager,
+			Delete:         false,
+		},
+	})
 }
 
 func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]secrets.SecretData) {

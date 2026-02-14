@@ -56,7 +56,7 @@ func listMembers(cmd *cobra.Command, cmdConfig *config.ProjectConfig) {
 		fmt.Fprintf(os.Stderr, "failed to create passbolt client: %v\n", err)
 		os.Exit(1)
 	}
-	members, err := client.GetGroup(cmdConfig.Team)
+	members, err := client.GetGroupMembers(cmdConfig.Team)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to get group members for %s: %v\n", cmdConfig.Team, err)
 		os.Exit(1)
