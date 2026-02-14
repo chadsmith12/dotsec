@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/chadsmith12/dotsec/config"
 	"github.com/spf13/cobra"
 )
 
@@ -25,13 +27,18 @@ func init() {
 func runTeamsCmd(cmd *cobra.Command, args []string) {
 	flags := cmd.Flags()
 	list, _ := flags.GetBool("list")
+	projectConfig, err := config.LoadProjectConfig(cmd, "")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
+		os.Exit(1)
+	}
 	if list {
-		listMembers()
+		listMembers(projectConfig)
 	} else {
 		fmt.Println(cmd.Help())
 	}
 }
 
-func listMembers() {
-
+func listMembers(cmdConfig *config.ProjectConfig) {
+	fmt.Printf("Team: %s\n", cmdConfig.Team)
 }

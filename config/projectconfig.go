@@ -106,6 +106,11 @@ func loadFromFile() (*ProjectConfig, error) {
 
 func overrideFromFlags(cmd *cobra.Command, config *ProjectConfig) {
 	flags := cmd.Flags()
+
+	if team, _ := flags.GetString("team"); team != "" {
+		config.Team = team
+	}
+
 	if secretType, _ := flags.GetString("type"); secretType != "" {
 		config.Type = secretType
 	}
@@ -114,11 +119,12 @@ func overrideFromFlags(cmd *cobra.Command, config *ProjectConfig) {
 		config.Type = "dotnet"
 	}
 
-	if config.Type == "dotnet" {
+	switch config.Type {
+	case "dotnet":
 		if project, _ := flags.GetString("project"); project != "" {
 			config.Path = project
 		}
-	} else if config.Type == "env" {
+	case "env":
 		if envFile, _ := flags.GetString("file"); envFile != "" {
 			config.Path = envFile
 		}

@@ -30,9 +30,6 @@ var pushCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(pushCmd)
-	pushCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory. Only valid with --type dotnet.")
-	pushCmd.Flags().StringP("file", "f", ".env", "The env file you want to save the secrets to. Default to .env in the current directory. Only valid with --type env.")
-	pushCmd.Flags().String("type", "", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
 }
 
 func pushRun(cmd *cobra.Command, args []string) {

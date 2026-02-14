@@ -17,11 +17,11 @@ var pullCmd = &cobra.Command{
 	Short: "Pulls down the secrets for a folder from passbolt",
 	Long: `Pulls down the secrets from the folder specified and saves them to your projects secrets file. There are two types: dotnet or env.
 		dotnet - Uses dotnet user-secrets to set the secrets in your dotnet projects secrets.json file.
-		env - Saves the secrets to the .env file. 
+		env - Saves the secrets to the .env file.
 
 		If you do not specify the --project flag, then it will attempt to use your current working directory.
 		You can specify the project directory for the secrets to try to be set.
-	
+
 		When using dotnet user-secrets your project will first be initialized to work with user-secrets.
 		When using env a file will be created and/or replaced with the secrets downloaded.
 
@@ -32,10 +32,6 @@ var pullCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(pullCmd)
-	pullCmd.Flags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory. Only valid with --type dotnet.")
-	pullCmd.Flags().StringP("file", "f", ".env", "The env file you want to save the secrets to. Default to .env in the current directory. Only valid with --type env.")
-	pullCmd.Flags().String("type", "", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
-
 }
 
 func pullRun(cmd *cobra.Command, args []string) {

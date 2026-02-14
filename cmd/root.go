@@ -33,9 +33,13 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.Version = "1.1.3"
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "Config file for dotsec to read information from.")
-	rootCmd.PersistentFlags().String("server", "", "Passbolt Server to use (https://passbolt.example.com)")
-	rootCmd.PersistentFlags().String("privateKey", "", "Passbolt User Private Key")
-	rootCmd.PersistentFlags().String("password", "", "Passbolt User Password")
+	rootCmd.PersistentFlags().StringP("server", "s", "", "Passbolt Server to use (https://passbolt.example.com)")
+	rootCmd.PersistentFlags().StringP("privateKey", "k", "", "Passbolt User Private Key")
+	rootCmd.PersistentFlags().StringP("password", "P", "", "Passbolt User Password")
+	rootCmd.PersistentFlags().StringP("project", "p", "", "The path to the dotnet project to sync the secrets to. Default to the current directory. Only valid with --type dotnet.")
+	rootCmd.PersistentFlags().StringP("file", "f", ".env", "The env file you want to save the secrets to. Default to .env in the current directory. Only valid with --type env.")
+	rootCmd.PersistentFlags().StringP("type", "t", "", "The type of secrets file you want to use. dotnet to use dotnet user-secrets or env to use a .env file.")
+	rootCmd.PersistentFlags().String("team", "", "The team/group to use")
 
 	viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
 	viper.BindPFlag("privateKey", rootCmd.PersistentFlags().Lookup("privateKey"))
