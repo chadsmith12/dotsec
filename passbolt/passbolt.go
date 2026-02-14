@@ -99,6 +99,29 @@ func (client *PassboltApi) UpdateSecret(resourceId string, secret secrets.Secret
 	return err
 }
 
+func (client *PassboltApi) GetGroup(groupName string) ([]helper.GroupMembership, error) {
+	groups, err := client.apiClient.GetGroups(client.context, &api.GetGroupsOptions{
+		ContainUsers: true,
+	})
+	if err != nil {
+		return []helper.GroupMembership{}, err
+	}
+
+	groupId := ""
+	for _, group := range groups {
+		if group.Name == groupName {
+			groupId = group.ID
+		}
+	}
+	if groupId == "" {
+		return []helper.GroupMembership{}, fmt.Errorf("failed to find group '%s'", groupName)
+	}
+
+	_, members, err := helper.GetGroup(client.context, client.apiClient, groupId)
+
+	return members, err
+}
+
 func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]secrets.SecretData) {
 	if len(resources) == 0 {
 		return

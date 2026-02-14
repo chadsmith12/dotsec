@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/chadsmith12/dotsec/cmdcontext"
 	"github.com/chadsmith12/dotsec/config"
 	"github.com/spf13/cobra"
 )
@@ -33,12 +36,32 @@ func runTeamsCmd(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	if list {
-		listMembers(projectConfig)
+		listMembers(cmd, projectConfig)
 	} else {
 		fmt.Println(cmd.Help())
 	}
 }
 
-func listMembers(cmdConfig *config.ProjectConfig) {
-	fmt.Printf("Team: %s\n", cmdConfig.Team)
+func listMembers(cmd *cobra.Command, cmdConfig *config.ProjectConfig) {
+	fmt.Printf("Listing members for %s: \n", cmdConfig.Team)
+	cmdContext, err := cmdcontext.NewCommandContext(cmd, cmdConfig)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create command context: %v\n", err)
+		os.Exit(1)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	client, err := cmdContext.UserClient(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create passbolt client: %v\n", err)
+		os.Exit(1)
+	}
+	members, err := client.GetGroup(cmdConfig.Team)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to get group members for %s: %v\n", cmdConfig.Team, err)
+		os.Exit(1)
+	}
+	for i, member := range members {
+		fmt.Printf("%d: %s %s\n", i+1, member.UserFirstName, member.UserLastName)
+	}
 }
