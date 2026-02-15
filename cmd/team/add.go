@@ -1,4 +1,4 @@
-package cmd
+package team
 
 import (
 	"context"
@@ -20,7 +20,7 @@ var addCmd = &cobra.Command{
 }
 
 func init() {
-	teamCmd.AddCommand(addCmd)
+	TeamCmd.AddCommand(addCmd)
 
 	addCmd.Flags().BoolP("manager", "m", false, "sets if this user should be added as a manager")
 }

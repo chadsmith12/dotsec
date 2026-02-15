@@ -1,4 +1,4 @@
-package cmd
+package team
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// teamCmd represents the team command
-var teamCmd = &cobra.Command{
+// TeamCmd represents the team command
+var TeamCmd = &cobra.Command{
 	Use:   "team",
 	Short: "Provides commands to work with teams in dotsec",
 	Long: `Provides commands to work with teams in dotsec.
@@ -22,9 +22,7 @@ with in your secrets manager.`,
 }
 
 func init() {
-	rootCmd.AddCommand(teamCmd)
-
-	teamCmd.Flags().BoolP("list", "l", true, "List all the members in the team")
+	TeamCmd.Flags().BoolP("list", "l", true, "List all the members in the team")
 }
 
 func runTeamsCmd(cmd *cobra.Command, args []string) {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/term"
 )
@@ -23,6 +24,23 @@ func PromptUser(prompt string, asPassword bool) (string, error) {
 	}
 
 	return string(inputBuf), nil
+}
+
+// PromptYesOrNo will prompt the user as a yes or no question and will return a boolean if they indicated yes or not
+func PromptYesOrNo(prompt string) (bool, error) {
+	for {
+		confirm, err := PromptUser(prompt, false)
+		if err != nil {
+			return false, err
+		}
+		trimmed := strings.ToLower(strings.TrimSpace(confirm))
+		if trimmed == "n" {
+			return false, nil
+		}
+		if trimmed == "y" {
+			return true, nil
+		}
+	}
 }
 
 func readInput() (string, error) {

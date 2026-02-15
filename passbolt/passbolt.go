@@ -15,6 +15,12 @@ var (
 	InvalidFolderErr = fmt.Errorf("failed to find folder")
 )
 
+var (
+	ReadOnlyPermission  = -1
+	CanUpdatePermission = 7
+	OwnerPermission     = 15
+)
+
 type PassboltApi struct {
 	server     string
 	privateKey string
@@ -27,6 +33,19 @@ type AddUserGroupOptions struct {
 	Group   api.Group
 	User    api.User
 	Manager bool
+}
+
+type UserPermission struct {
+	User api.User
+	Type int
+}
+
+type GroupNotFoundErr struct {
+	Group string
+}
+
+func (g *GroupNotFoundErr) Error() string {
+	return fmt.Sprintf("group '%s' was not found", g.Group)
 }
 
 type resourceResult struct {
@@ -76,8 +95,10 @@ func (client *PassboltApi) GetSecretsByFolder(folderName string) ([]secrets.Secr
 
 func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder, error) {
 	folders, err := client.apiClient.GetFolders(client.context, &api.GetFoldersOptions{
-		FilterSearch:             folderName,
-		ContainChildrenResources: true,
+		FilterSearch:                 folderName,
+		ContainChildrenResources:     true,
+		ContainPermissions:           true,
+		ContainPermissionUserProfile: true,
 	})
 
 	if err != nil {
@@ -108,7 +129,7 @@ func (client *PassboltApi) UpdateSecret(resourceId string, secret secrets.Secret
 func (client *PassboltApi) GetGroupMembers(groupName string) ([]helper.GroupMembership, error) {
 	group, err := client.GetGroup(groupName)
 	if group.ID == "" {
-		return []helper.GroupMembership{}, fmt.Errorf("failed to find group '%s'", groupName)
+		return []helper.GroupMembership{}, &GroupNotFoundErr{Group: groupName}
 	}
 
 	_, members, err := helper.GetGroup(client.context, client.apiClient, group.ID)
@@ -131,7 +152,7 @@ func (client *PassboltApi) GetGroup(groupName string) (api.Group, error) {
 		}
 	}
 	if foundGroup.ID == "" {
-		return foundGroup, fmt.Errorf("failed to find group '%s'", groupName)
+		return foundGroup, &GroupNotFoundErr{Group: groupName}
 	}
 	return foundGroup, nil
 }
@@ -151,6 +172,27 @@ func (client *PassboltApi) GetUser(userEmail string) (api.User, error) {
 	return api.User{}, fmt.Errorf("failed to find user %s", userEmail)
 }
 
+func (client *PassboltApi) GetUsersFromPermissions(permissions []api.Permission) ([]UserPermission, error) {
+	users, err := client.apiClient.GetUsers(client.context, &api.GetUsersOptions{})
+	if err != nil {
+		return []UserPermission{}, err
+	}
+
+	foundUsers := []UserPermission{}
+	for _, permission := range permissions {
+		if permission.ARO != "User" {
+			continue
+		}
+		for _, user := range users {
+			if user.ID == permission.AROForeignKey {
+				foundUsers = append(foundUsers, UserPermission{User: user, Type: permission.Type})
+			}
+		}
+	}
+
+	return foundUsers, nil
+}
+
 func (client *PassboltApi) AddUserToGroup(options AddUserGroupOptions) error {
 	return helper.UpdateGroup(client.context, client.apiClient, options.Group.ID, options.Group.Name, []helper.GroupMembershipOperation{
 		{
@@ -159,6 +201,24 @@ func (client *PassboltApi) AddUserToGroup(options AddUserGroupOptions) error {
 			Delete:         false,
 		},
 	})
+}
+
+func (client *PassboltApi) CreateGroup(groupName string, userPermissions []UserPermission) error {
+	membeshipOptions := make([]helper.GroupMembershipOperation, len(userPermissions))
+	for i, user := range userPermissions {
+		membeshipOptions[i] = helper.GroupMembershipOperation{
+			UserID:         user.User.ID,
+			IsGroupManager: user.Type == OwnerPermission,
+		}
+	}
+	id, err := helper.CreateGroup(client.context, client.apiClient, groupName, membeshipOptions)
+	fmt.Printf("%s\n", id)
+
+	return err
+}
+
+func (client *PassboltApi) MoveFolder(folderId string, parentFolderId string) error {
+	return helper.MoveFolder(client.context, client.apiClient, folderId, parentFolderId)
 }
 
 func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]secrets.SecretData) {

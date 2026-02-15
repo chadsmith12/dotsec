@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/adrg/xdg"
+	"github.com/chadsmith12/dotsec/cmd/team"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -44,6 +45,8 @@ func init() {
 	viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
 	viper.BindPFlag("privateKey", rootCmd.PersistentFlags().Lookup("privateKey"))
 	viper.BindPFlag("password", rootCmd.PersistentFlags().Lookup("password"))
+
+	rootCmd.AddCommand(team.TeamCmd)
 }
 
 func initConfig() {

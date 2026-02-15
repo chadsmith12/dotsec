@@ -14,7 +14,7 @@ type ProjectConfig struct {
 	Folder string `json:"folder"`
 	Type   string `json:"type"`
 	Path   string `json:"path"`
-	Team   string `json:"team"`
+	Team   string `json:"team,omitempty"`
 }
 
 func defaultProjectConfig() ProjectConfig {
@@ -82,7 +82,6 @@ func LoadProjectConfig(cmd *cobra.Command, folder string) (*ProjectConfig, error
 	if folder != "" {
 		config.Folder = folder
 	}
-
 	if config.Folder == "" {
 		return nil, fmt.Errorf("folder is required. Provide from argument or a .dotsecrc file")
 	}
