@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/chadsmith12/dotsec/secrets"
@@ -49,7 +51,7 @@ func setSecrets(envFile string, secretsData []secrets.SecretData) error {
 		return fmt.Errorf("SetSecrets - failed to open file. %w", err)
 	}
 
-	tempEnvFile, err := os.CreateTemp("", ".env.temp")
+	tempEnvFile, err := os.CreateTemp(filepath.Dir(envFile), ".env.temp")
 	if err != nil {
 		currEnvFile.Close()
 		return fmt.Errorf("SetSecrets - failed to create temporary file. %w", err)
@@ -129,8 +131,14 @@ func processExistingLine(line string, writer *bufio.Writer, secretsMap map[strin
 }
 
 func writeRemainingSecrets(writer *bufio.Writer, secretsMap map[string]string) error {
-	for key, value := range secretsMap {
-		line := formatEnvLine(key, value)
+	keys := make([]string, 0, len(secretsMap))
+	for key := range secretsMap {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		line := formatEnvLine(key, secretsMap[key])
 		if err := writeLineToFile(writer, line); err != nil {
 			return err
 		}

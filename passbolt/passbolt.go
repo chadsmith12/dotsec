@@ -3,6 +3,7 @@ package passbolt
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -20,6 +21,10 @@ var (
 	CanUpdatePermission = 7
 	OwnerPermission     = 15
 )
+
+type UpdateGroupResult struct {
+	Errors []error
+}
 
 type PassboltApi struct {
 	server     string
@@ -114,16 +119,20 @@ func (client *PassboltApi) GetFolderWithResources(folderName string) (api.Folder
 	return api.Folder{}, InvalidFolderErr
 }
 
-func (client *PassboltApi) CreateSecretInFolder(folderId string, secret secrets.SecretData) error {
-	_, err := helper.CreateResource(client.context, client.apiClient, folderId, secret.Key, "", "", secret.Value, "")
+func (client *PassboltApi) CreateSecretInFolder(folderId string, secret secrets.SecretData) (string, error) {
+	resourceID, err := helper.CreateResource(client.context, client.apiClient, folderId, secret.Key, "", "", secret.Value, "")
 
-	return err
+	return resourceID, err
 }
 
 func (client *PassboltApi) UpdateSecret(resourceId string, secret secrets.SecretData) error {
 	err := helper.UpdateResource(client.context, client.apiClient, resourceId, "", "", "", secret.Value, "")
 
 	return err
+}
+
+func (client *PassboltApi) DeleteSecret(resourceId string) error {
+	return client.apiClient.DeleteResource(client.context, resourceId)
 }
 
 func (client *PassboltApi) GetGroupMembers(groupName string) ([]helper.GroupMembership, error) {
@@ -203,7 +212,7 @@ func (client *PassboltApi) AddUserToGroup(options AddUserGroupOptions) error {
 	})
 }
 
-func (client *PassboltApi) CreateGroup(groupName string, userPermissions []UserPermission) error {
+func (client *PassboltApi) CreateGroup(groupName string, userPermissions []UserPermission) (string, error) {
 	membeshipOptions := make([]helper.GroupMembershipOperation, len(userPermissions))
 	for i, user := range userPermissions {
 		membeshipOptions[i] = helper.GroupMembershipOperation{
@@ -211,14 +220,51 @@ func (client *PassboltApi) CreateGroup(groupName string, userPermissions []UserP
 			IsGroupManager: user.Type == OwnerPermission,
 		}
 	}
-	id, err := helper.CreateGroup(client.context, client.apiClient, groupName, membeshipOptions)
-	fmt.Printf("%s\n", id)
 
-	return err
+	return helper.CreateGroup(client.context, client.apiClient, groupName, membeshipOptions)
+}
+
+func (client *PassboltApi) UpdateGroup(groupId string, groupName string, userPermissions []UserPermission) UpdateGroupResult {
+	membeshipOptions := make([]helper.GroupMembershipOperation, len(userPermissions))
+	for i, user := range userPermissions {
+		membeshipOptions[i] = helper.GroupMembershipOperation{
+			UserID:         user.User.ID,
+			IsGroupManager: user.Type == OwnerPermission,
+		}
+	}
+
+	errors := []error{}
+	for _, user := range membeshipOptions {
+		err := client.AddUserToGroup(AddUserGroupOptions{
+			Group:   api.Group{Name: groupName, ID: groupId},
+			User:    api.User{ID: user.UserID},
+			Manager: user.IsGroupManager,
+		})
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	return UpdateGroupResult{Errors: errors}
 }
 
 func (client *PassboltApi) MoveFolder(folderId string, parentFolderId string) error {
 	return helper.MoveFolder(client.context, client.apiClient, folderId, parentFolderId)
+}
+
+func (client *PassboltApi) ShareFolderWithGroup(folderId, groupId string) error {
+	return helper.ShareFolderWithUsersAndGroups(client.context, client.apiClient, folderId, []string{}, []string{groupId}, CanUpdatePermission)
+}
+
+func (client *PassboltApi) ShareResourcesWithGroup(resourceIds []string, groupId string) []error {
+	errors := []error{}
+	for _, resourceId := range resourceIds {
+		err := helper.ShareResourceWithUsersAndGroups(client.context, client.apiClient, resourceId, []string{}, []string{groupId}, CanUpdatePermission)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("failed to share resource %s: %w", resourceId, err))
+		}
+	}
+	return errors
 }
 
 func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]secrets.SecretData) {
@@ -242,6 +288,10 @@ func (client *PassboltApi) populateSecrets(resources []api.Resource, secrets *[]
 			*secrets = append(*secrets, result.secretData)
 		}
 	}
+
+	sort.Slice(*secrets, func(i, j int) bool {
+		return (*secrets)[i].Key < (*secrets)[j].Key
+	})
 }
 
 func (client *PassboltApi) downloadResource(resource api.Resource, ch chan<- resourceResult, wg *sync.WaitGroup) {

@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/chadsmith12/dotsec/cmdcontext"
 	"github.com/chadsmith12/dotsec/colors"
@@ -26,6 +26,7 @@ var migrateCmd = &cobra.Command{
 
 type migrationProcess struct {
 	group       string
+	groupId     string
 	createGroup bool
 	usersToMove []helper.GroupMembership
 }
@@ -45,8 +46,7 @@ func runMigrateCmd(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "failed to create command context: %v\n", err)
 		os.Exit(1)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	ctx := context.Background()
 	client, err := cmdContext.UserClient(ctx)
 	_ = client
 	if err != nil {
@@ -59,7 +59,7 @@ func runMigrateCmd(cmd *cobra.Command, args []string) {
 	}
 
 	migration := migrationProcess{createGroup: false}
-	_, err = client.GetGroup(projectConfig.Team)
+	foundGroup, err := client.GetGroup(projectConfig.Team)
 	if err != nil {
 		if _, ok := err.(*passbolt.GroupNotFoundErr); !ok {
 			fmt.Fprintf(os.Stderr, "failed to get group: %v\n", err)
@@ -73,6 +73,8 @@ func runMigrateCmd(cmd *cobra.Command, args []string) {
 
 		migration.createGroup = true
 		migration.group = projectConfig.Team
+	} else {
+		migration.groupId = foundGroup.ID
 	}
 
 	folder, err := client.GetFolderWithResources(projectConfig.Folder)
@@ -93,6 +95,7 @@ func runMigrateCmd(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Update group %s\n", projectConfig.Team)
 	}
+	fmt.Printf("Share %d resources with %s (replacing individual permissions)\n", len(folder.ChildrenResources), projectConfig.Team)
 	fmt.Printf("  With Members: \n")
 	for i, user := range userPermissions {
 		permissionType := "Member"
@@ -107,10 +110,19 @@ func runMigrateCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = client.CreateGroup(projectConfig.Team, userPermissions)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to get create group: %v\n", err)
-		os.Exit(1)
+	if migration.createGroup {
+		id, err := client.CreateGroup(projectConfig.Team, userPermissions)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to get create group: %v\n", err)
+			os.Exit(1)
+		}
+		migration.groupId = id
+	} else {
+		results := client.UpdateGroup(migration.groupId, projectConfig.Team, userPermissions)
+		if len(results.Errors) > 0 {
+			joinedErr := errors.Join(results.Errors...)
+			fmt.Printf("%d errors occured updating the group: %s", len(results.Errors), joinedErr)
+		}
 	}
 
 	dotsecFolder, err := client.GetFolderWithResources("dotsec")
@@ -127,6 +139,24 @@ func runMigrateCmd(cmd *cobra.Command, args []string) {
 	err = client.MoveFolder(oldFolder.ID, dotsecFolder.ID)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to move %s to dotsec/%s. Try moving it in Passbolt. %v\n", projectConfig.Folder, projectConfig.Folder, err)
+		os.Exit(1)
+	}
+
+	err = client.ShareFolderWithGroup(oldFolder.ID, migration.groupId)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to share folder: %v\n", err)
+		os.Exit(1)
+	}
+
+	resourceIds := make([]string, len(oldFolder.ChildrenResources))
+	for i, resource := range oldFolder.ChildrenResources {
+		resourceIds[i] = resource.ID
+	}
+
+	shareErrors := client.ShareResourcesWithGroup(resourceIds, migration.groupId)
+	if len(shareErrors) > 0 {
+		joinedErr := errors.Join(shareErrors...)
+		fmt.Fprintf(os.Stderr, "failed to share some resources: %v\n", joinedErr)
 		os.Exit(1)
 	}
 }
