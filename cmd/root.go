@@ -32,7 +32,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.Version = "1.1.3"
+	rootCmd.Version = "2.0.0b"
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "Config file for dotsec to read information from.")
 	rootCmd.PersistentFlags().StringP("server", "s", "", "Passbolt Server to use (https://passbolt.example.com)")
 	rootCmd.PersistentFlags().StringP("privateKey", "k", "", "Passbolt User Private Key")
