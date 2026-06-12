@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/chadsmith12/dotsec/cmdcontext"
 	"github.com/chadsmith12/dotsec/config"
@@ -44,14 +43,14 @@ func pullRun(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		os.Exit(1)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+
 	cmdContext, err := cmdcontext.NewCommandContext(cmd, projectConfig)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create command context: %v\n", err)
 		os.Exit(1)
 	}
 
+	ctx := context.Background()
 	client, err := cmdContext.UserClient(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to get Passbolt client: %v\n", err)
